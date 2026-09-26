@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ICO Dental Flyer Generator - Web App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Montserrat:wght@600;700;800;900&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- 引入轻量级 Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #0f172a;
+      color: #1a365d;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    #app {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* 左侧控制面板 */
+    .sidebar {
+      width: 460px;
+      min-width: 460px;
+      background: #1e293b;
+      color: #f1f5f9;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #334155;
+      z-index: 100;
+    }
+
+    .sidebar-header {
+      padding: 18px 20px;
+      background: #0f172a;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sidebar-header h2 {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 16px;
+      font-weight: 800;
+      color: #38bdf8;
+    }
+
+    .btn-print {
+      background: #0284c7;
+      color: #ffffff;
+      border: none;
+      padding: 8px 16px;
+      font-weight: 700;
+      font-size: 13px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-print:hover {
+      background: #0369a1;
+    }
+
+    .sidebar-content {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel-box {
+      background: #243247;
+      border: 1px solid #3b4d66;
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .panel-title {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: #93c5fd;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .form-group {
+      margin-bottom: 10px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 11.5px;
+      color: #94a3b8;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .form-control {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #ffffff;
+      padding: 7px 10px;
+      font-size: 13px;
+      border-radius: 5px;
+      outline: none;
+    }
+
+    .form-control:focus {
+      border-color: #38bdf8;
+    }
+
+    .table-editor-item {
+      background: #1b2636;
+      border: 1px solid #2d3f56;
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
+    .row-edit-grid {
+      display: grid;
+      grid-template-columns: 1fr 75px 32px 28px;
+      gap: 5px;
+      margin-bottom: 6px;
+      align-items: center;
+    }
+
+    .btn-del {
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      height: 31px;
+    }
+
+    .btn-break {
+      background: #334155;
+      color: #94a3b8;
+      border: 1px solid #475569;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: bold;
+      height: 31px;
+    }
+    .btn-break.active {
+      background: #0284c7;
+      color: #fff;
+      border-color: #38bdf8;
+    }
+
+    .btn-add-row {
+      background: #334155;
+      color: #38bdf8;
+      border: 1px dashed #475569;
+      width: 100%;
+      padding: 5px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    .preset-btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-preset {
+      flex: 1;
+      padding: 6px;
+      background: #334155;
+      border: 1px solid #475569;
+      color: #e2e8f0;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .btn-preset.active {
+      background: #0284c7;
+      border-color: #38bdf8;
+    }
+
+    /* 右侧实时预览区 */
+    .preview-stage {
+      flex: 1;
+      background: #334155;
+      overflow-y: auto;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 30px;
+    }
+
+    /* A4 页面标准 */
+    .flyer-page {
+      width: 210mm;
+      height: 297mm;
+      min-height: 297mm;
+      max-height: 297mm;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      padding: 24px 34px 90px 34px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+      background-image: url('background.png');
+      background-size: cover;
+      background-position: center top;
+      background-repeat: no-repeat;
+      page-break-after: always;
+      break-after: page;
+      flex-shrink: 0;
+    }
+
+    .content-layer {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      justify-content: flex-start;
+    }
+
+    .header-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 14px;
+      min-height: 260px;
+    }
+
+    .brand-col {
+      max-width: 63%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 260px;
+    }
+
+    .brand-col h1 {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 40px; 
+      font-weight: 900;
+      color: #0f4c81;
+      line-height: 1.05;
+      letter-spacing: -0.5px;
+      text-shadow: 0 1px 3px rgba(255, 255, 255, 0.9);
+    }
+
+    .brand-col h2 {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: #1e6bb8;
+      margin-top: 4px;
+      margin-bottom: 5px;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+    }
+
+    .brand-col .slogan {
+      font-style: italic;
+      font-size: 15px;
+      color: #334e68;
+      font-weight: 500;
+    }
+
+    .contact-card-grid {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1.5px solid rgba(175, 210, 240, 0.95);
+      border-radius: 10px;
+      padding: 9px 15px;
+      font-size: 13.5px;
+      display: inline-flex;
+      flex-direction: column;
+      gap: 7px;
+      width: fit-content;
+      max-width: 360px;
+      box-shadow: 0 4px 14px rgba(15, 76, 129, 0.09);
+      margin-bottom: 4px;
+    }
+
+    .contact-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #243b53;
+    }
+
+    .contact-item svg {
+      width: 16px;
+      height: 16px;
+      fill: #1971c2;
+      flex-shrink: 0;
+    }
+
+    .contact-item a {
+      color: #1a365d;
+      text-decoration: none;
+    }
+
+    .promo-banner {
+      margin-top: 5px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 13px;
+      font-weight: 800;
+      color: #c92a2a;
+      background: rgba(255, 255, 255, 0.88);
+      padding: 4px 12px;
+      border-radius: 6px;
+      border: 1px dashed rgba(224, 49, 49, 0.6);
+      width: fit-content;
+    }
+
+    .logo-col {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      text-align: right;
+      height: 260px;
+      justify-content: space-between;
+    }
+
+    .squirrel-logo {
+      width: 125px;
+      height: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.16));
+    }
+
+    .year-banner {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 48px;
+      font-weight: 900;
+      color: #c96504;
+      line-height: 0.95;
+      text-shadow: -2px -2px 0 #ffffff, 2px -2px 0 #ffffff, -2px 2px 0 #ffffff, 2px 2px 0 #ffffff, 0 3px 8px rgba(0, 0, 0, 0.25);
+    }
+
+    .price-list-badge {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 14.5px;
+      font-weight: 900;
+      color: #0b3d68;
+      text-transform: uppercase;
+      text-shadow: -1.5px -1.5px 0 #ffffff, 1.5px -1.5px 0 #ffffff, -1.5px 1.5px 0 #ffffff, 1.5px 1.5px 0 #ffffff;
+    }
+
+    .header-subpage {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 5px;
+      border-bottom: 1.5px solid rgba(30, 107, 184, 0.35);
+    }
+
+    .header-subpage .sub-brand {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 16.5px;
+      font-weight: 800;
+      color: #0f4c81;
+    }
+
+    .header-subpage .sub-contact {
+      font-size: 10.5px;
+      color: #334e68;
+      font-weight: 600;
+    }
+
+    .table-container {
+      background: rgba(255, 255, 255, 0.94);
+      border-radius: 9px;
+      overflow: hidden;
+      border: 1px solid rgba(190, 218, 242, 0.95);
+      box-shadow: 0 4px 14px rgba(16, 76, 130, 0.06);
+      margin-bottom: 10px;
+    }
+    /* 避免任何单行在视口或打印时被腰斩 */
+    .product-table tr, .portal-table tr {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+
+    .custom-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.8px;
+      line-height: 1.4;
+    }
+
+    .product-header {
+      background: linear-gradient(90deg, #165b99 0%, #2578c2 100%);
+      color: #ffffff;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 700;
+      font-size: 13.8px;
+      padding: 7px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .portal-container {
+      border-color: rgba(160, 208, 226, 0.95);
+    }
+
+    .portal-header {
+      background: linear-gradient(90deg, #13607c 0%, #1e859b 100%);
+      color: #ffffff;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 700;
+      font-size: 13.2px;
+      padding: 7px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .portal-table td {
+      padding: 6px 14px;
+      border-bottom: 1px solid rgba(220, 235, 245, 0.9);
+    }
+
+    .portal-table tr:nth-child(even) {
+      background-color: rgba(235, 247, 251, 0.65);
+    }
+
+    .portal-table .col-portal {
+      font-weight: 600;
+      color: #10485e;
+      width: 30%;
+    }
+
+    .portal-table .col-endpoint {
+      color: #1c5064;
+      font-family: ui-monospace, monospace;
+      font-size: 15px;
+    }
+
+    .product-table td {
+      padding: 7px 14px;
+      border-bottom: 1px solid rgba(230, 240, 250, 0.85);
+    }
+
+    .product-table tr:nth-child(even) {
+      background-color: rgba(240, 247, 255, 0.65);
+    }
+
+    .product-table .col-name {
+      color: #102a43;
+      font-weight: 500;
+    }
+
+    .product-table .col-name.indent {
+      padding-left: 26px;
+      color: #3b5673;
+      font-size: 12.6px;
+    }
+
+    .product-table .col-price {
+      text-align: right;
+      font-weight: 700;
+      color: #0d4a80;
+      font-size: 13.8px;
+      width: 28%;
+      white-space: nowrap;
+    }
+
+    .price-note {
+      display: block;
+      font-size: 10px;
+      font-weight: 500;
+      color: #627d98;
+      font-style: italic;
+    }
+
+    .section-subheader {
+      background: rgba(220, 236, 250, 0.9);
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 700;
+      color: #0d4a80;
+      font-size: 12.6px;
+      padding: 6px 14px !important;
+    }
+
+    .footer-area {
+      position: absolute;
+      right: 36px;
+      bottom: 25px;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .art-footer-group {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .art-footer-line {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-style: italic;
+      font-size: 15px;
+      font-weight: 700;
+      color: #164e7d;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.95);
+    }
+
+    .art-footer-page {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 11px;
+      font-weight: 800;
+      color: #0d3b66;
+      background: rgba(255, 255, 255, 0.85);
+      padding: 1px 7px;
+      border-radius: 4px;
+    }
+
+    /* 右侧预览表格支持点击交互（悬浮提示） */
+    .custom-table tr {
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+    }
+    .custom-table tr:hover {
+      background-color: rgba(56, 189, 248, 0.15) !important;
+    }
+
+    /* 左侧定位后的呼吸高亮效果 */
+    .highlight-focus {
+      border: 1.5px solid #f59e0b !important;
+      background-color: rgba(245, 158, 11, 0.15) !important;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.5) !important;
+      transition: all 0.25s ease;
+    }
+
+    @media print {
+      html, body {
+        width: 210mm !important;
+        height: auto !important;
+        min-height: auto !important;
+        overflow: visible !important;
+        background: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      #app {
+        display: block !important; /* 解除 flex 布局对高度的锁死 */
+        height: auto !important;
+        min-height: auto !important;
+        overflow: visible !important;
+      }
+
+      .sidebar {
+        display: none !important; /* 彻底移除侧边栏 */
+      }
+
+      .preview-stage {
+        display: block !important;
+        width: 210mm !important;
+        height: auto !important;
+        min-height: auto !important;
+        overflow: visible !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: none !important;
+      }
+
+      .flyer-page {
+        width: 210mm !important;
+        height: 297mm !important;
+        min-height: 297mm !important;
+        max-height: 297mm !important;
+        margin: 0 !important;
+        padding: 24px 34px 90px 34px !important;
+        box-shadow: none !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        overflow: hidden !important; /* 保证每张 A4 纸独立整洁 */
+      }
+
+      /* 打印时取消交互悬浮效果 */
+      a {
+        text-decoration: none !important;
+        color: inherit !important;
+      }
+
+      .custom-table tr {
+        cursor: default !important;
+        background-color: transparent !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <!-- 左侧控制面板 -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h2>ICO Flyer Studio</h2>
+      <button class="btn-print" @click="printPDF">Print PDF</button>
+    </div>
+
+    <div class="sidebar-content">
+      <!-- 模板切换 -->
+      <div class="panel-box">
+        <div class="panel-title">Template Presets</div>
+        <div class="preset-btns">
+          <button class="btn-preset" :class="{active: currentPreset === 'edward'}" @click="loadPreset('edward')">Edward</button>
+          <button class="btn-preset" :class="{active: currentPreset === 'max'}" @click="loadPreset('max')">Max Yan</button>
+        </div>
+      </div>
+
+      <!-- 高度容差滑块（微调水线） -->
+      <div class="panel-box">
+        <div class="panel-title">
+          <span>Safety Margin Height</span>
+          <span style="color:#38bdf8">{{ subMaxHeight }}px</span>
+        </div>
+        <input type="range" min="900" max="1000" step="5" v-model.number="subMaxHeight" style="width:100%; cursor:pointer;">
+        <div style="font-size:11px; color:#94a3b8; margin-top:4px;">Drag left to trigger page break earlier, right to pack more rows.</div>
+      </div>
+
+      <!-- 名片信息 -->
+      <div class="panel-box">
+        <div class="panel-title">Rep Info & Banner</div>
+        <div class="form-group">
+          <label>Sales Rep Name</label>
+          <input type="text" class="form-control" v-model="rep.name">
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="text" class="form-control" v-model="rep.phone">
+        </div>
+        <div class="form-group">
+          <label>Direct Email</label>
+          <input type="text" class="form-control" v-model="rep.email">
+        </div>
+        <div class="form-group">
+          <label>Promo Banner</label>
+          <input type="text" class="form-control" v-model="rep.promo">
+        </div>
+      </div>
+
+      <!-- Portal 编辑 -->
+      <div class="panel-box">
+        <div class="panel-title">Scanner Portal Editor</div>
+        <div v-for="(pItem, pIdx) in portals" :key="pIdx" class="row-edit-grid" style="grid-template-columns: 100px 1fr 28px;">
+          <input type="text" class="form-control" style="font-size:11.5px;" v-model="pItem.portal">
+          <input type="text" class="form-control" style="font-size:11.5px;" v-model="pItem.endpoint">
+          <button class="btn-del" @click="portals.splice(pIdx, 1)">×</button>
+        </div>
+        <button class="btn-add-row" @click="portals.push({ portal: 'New Portal', endpoint: 'email@example.com' })">+ Add Scanner Connection</button>
+      </div>
+
+      <!-- 产品目录编辑器 (含 [✂切页] 按钮) -->
+      <div class="panel-box">
+        <div class="panel-title">Product Catalog Editor</div>
+        <div v-for="(table, tIndex) in tables" :key="tIndex" class="table-editor-item">
+          <div style="font-weight:700; font-size:12px; color:#38bdf8; margin-bottom:8px; display:flex; justify-content:space-between;">
+            <span>{{ table.name }}</span>
+            <span style="font-size:11px; color:#94a3b8;">{{ table.items.length }} items</span>
+          </div>
+
+          <div v-for="(item, iIndex) in table.items" :key="item.id || iIndex" :id="'panel-item-' + item.id">
+            <div class="row-edit-grid">
+              <input type="text" class="form-control" style="font-size:11.5px;" v-model="item.name" :class="{'highlight-focus': activeItemId === item.id}">
+              <input type="text" class="form-control" style="font-size:11.5px;" v-model="item.price" v-if="!item.isSubheader" :class="{'highlight-focus': activeItemId === item.id}">
+              <div style="text-align:center; color:#94a3b8; font-size:10px;" v-else>SUB</div>
+              
+              <button class="btn-break" :class="{active: item.breakBefore}" @click="item.breakBefore = !item.breakBefore" title="Click to force page break before this row">
+                ✂切页
+              </button>
+              
+              <button class="btn-del" @click="removeItem(table, iIndex)">×</button>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:6px;">
+            <button class="btn-add-row" @click="addItem(table)">+ Add Row</button>
+            <button class="btn-add-row" style="color:#fbbf24;" @click="addSubheader(table)">+ Subheader</button>
+          </div>
+        </div>
+      </div>
+
+      <button style="background:none; border:1px solid #475569; color:#94a3b8; padding:8px; border-radius:6px; cursor:pointer;" @click="resetToDefault">Reset All to Default</button>
+    </div>
+  </aside>
+
+  <!-- 右侧实时预览区 -->
+  <main class="preview-stage">
+    <div v-for="(page, pIndex) in paginatedPages" :key="pIndex" class="flyer-page">
+      <div class="content-layer">
+        
+        <!-- 第 1 页 Header -->
+        <header v-if="pIndex === 0" class="header-section">
+          <div class="brand-col">
+            <div>
+              <h1>ICO Dental Group</h1>
+              <h2>Crystal Smile Lab</h2>
+              <p class="slogan">Your Trusted Partner in Digital Dental Solutions</p>
+            </div>
+            
+            <div>
+              <div class="contact-card-grid">
+                <div class="contact-item">
+                  <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                  <span>{{ rep.name }}: <a :href="'tel:' + rep.phone"><strong>{{ rep.phone }}</strong></a></span>
+                </div>
+                <div class="contact-item">
+                  <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                  <span>Lab Service: <a href="tel:8667793210"><strong>(866)-779-3210</strong></a></span>
+                </div>
+                <div class="contact-item">
+                  <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                  <span><a :href="'mailto:' + rep.email"><strong>{{ rep.email }}</strong></a></span>
+                </div>
+              </div>
+              <div v-if="rep.promo" class="promo-banner">★ {{ rep.promo }}</div>
+            </div>
+          </div>
+
+          <div class="logo-col">
+            <img src="squirrel.png" alt="ICO Mascot Logo" class="squirrel-logo">
+            <div class="year-banner">2026</div>
+            <div class="price-list-badge">Detailed Price List</div>
+          </div>
+        </header>
+
+        <!-- 第 2/3/4 页 Subheader -->
+        <header v-else class="header-subpage">
+          <div class="sub-brand">ICO Dental Group <span>• Professional Price List</span></div>
+          <div class="sub-contact">
+            Direct: <a :href="'tel:' + rep.phone">{{ rep.phone }}</a> | Lab: <a href="tel:8667793210">(866)-779-3210</a>
+          </div>
+        </header>
+
+        <!-- 第 1 页 Portal 表格 -->
+        <section v-if="pIndex === 0" class="table-container portal-container">
+          <div class="portal-header">
+            <span>LAB SCANNER PORTAL</span>
+            <span style="font-size: 10px; font-weight: normal; opacity: 0.9;">DIGITAL CONNECTIONS</span>
+          </div>
+          <table class="custom-table portal-table">
+            <tbody>
+              <tr v-for="(pItem, pIdx) in portals" :key="pIdx">
+                <td class="col-portal">{{ pItem.portal }}</td>
+                <td class="col-endpoint" v-html="formatPortalEndpoint(pItem.endpoint)"></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- 页面内自动或手动切页后的表格片段 -->
+        <section v-for="(frag, fIndex) in page.fragments" :key="fIndex" class="table-container">
+          <div v-if="frag.isFirstPart" class="product-header">
+            <span>{{ frag.tableName }}</span>
+            <span>CURRENT PRICE</span>
+          </div>
+
+          <table class="custom-table product-table">
+            <tbody>
+              <tr v-for="(row, rIndex) in frag.items" :key="row.id || rIndex" @click="locateItemInPanel(row.id)" title="Click to edit this item in left panel">
+                <td v-if="row.isSubheader" colspan="2" class="section-subheader">{{ row.name }}</td>
+                <template v-else>
+                  <td class="col-name" :class="{indent: row.isIndent}">{{ row.name }}</td>
+                  <td class="col-price">
+                    {{ row.price }}
+                    <span v-if="row.note" class="price-note">{{ row.note }}</span>
+                  </td>
+                </template>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+      </div>
+
+      <footer class="footer-area">
+        <div class="art-footer-group">
+          <div class="art-footer-line">High Quality</div>
+          <div class="art-footer-line">Precision</div>
+          <div class="art-footer-line">On Time</div>
+          <div class="art-footer-page">{{ pIndex + 1 }} / {{ paginatedPages.length }}</div>
+        </div>
+      </footer>
+    </div>
+  </main>
+</div>
+
+<script>
+const { createApp, ref, computed, watch } = Vue;
+
+createApp({
+  setup() {
+    const defaultEdwardRep = {
+      name: "Edward Shan",
+      phone: "774-277-9053",
+      email: "edwardshan.crystalsmile@gmail.com",
+      promo: ""
+    };
+
+    const defaultEdwardTables = [
+      {
+        name: "CROWN & BRIDGE",
+        items: [
+          { name: "Zirconia Solid Crown", price: "$65" },
+          { name: "Zirconia HT Crown", price: "$65" },
+          { name: "Zirconia Crown (Multi-Layered)", price: "$70" },
+          { name: "Zirconia Maryland Bridge (1 Pontic + 2 Wings)", price: "$162" },
+          { name: "Zirconia Crown - Porcelain Layered (PFZ)", price: "$85" },
+          { name: "Full Metal Crown - Non Precious", price: "$50" },
+          { name: "PFM - Non Precious", price: "$55" },
+          { name: "Semi-precious (Pd52% Au15%) - Noble Alloy - PFM/FMC", price: "$66/g", note: "*(Subject to market rate)" },
+          { name: "E.max Crown", price: "$90" }
+        ]
+      },
+      {
+        name: "VENEER",
+        items: [
+          { name: "E.max Veneer", price: "$100" },
+          { name: "Zirconia Veneer", price: "$75" },
+          { name: "Ultra-thin Zirconia Veneer", price: "$200" },
+          { name: "Wax Mockup", price: "$20" },
+          { name: "Esthetic Wax Mockup", price: "$40" },
+          { name: "Esthetic Zirconia Veneer", price: "$225" },
+          { name: "Esthetic E.max Veneer", price: "$350" }
+        ]
+      },
+      {
+        name: "DENTURE",
+        items: [
+          { isSubheader: true, name: "1. ACRYLIC" },
+          { name: "Custom Tray", price: "$25" },
+          { name: "Base Plate & Occlusal Rim", price: "$25" },
+          { name: "Acrylic Denture (Full / Partial)", price: "$160 / $150" },
+          { isIndent: true, name: "• Includes - Teeth Wax Try in (Full / Partial)", price: "$80 / $75" },
+          { isIndent: true, name: "• Includes - Acrylic Processing (Full / Partial)", price: "$80 / $75" },
+          { name: "Acrylic Flipper - 1 to 3 Teeth in a row, One-step Finish Directly", price: "$99" },
+          { isSubheader: true, name: "2. FLEXIBLE PARTIAL" },
+          { name: "Custom Tray", price: "$25" },
+          { name: "Base Plate & Occlusal Rim", price: "$25" },
+          { name: "Valplast Partial", price: "$180" },
+          { isIndent: true, name: "• Includes - Teeth Wax Try In", price: "$75" },
+          { isIndent: true, name: "• Includes - Valplast Processing", price: "$105" },
+          { name: "Valplast Flipper - 1 to 3 Teeth in a row, One-step Finish Directly", price: "$120" },
+          { isSubheader: true, name: "3. METAL PARTIAL" },
+          { name: "Custom Tray", price: "$25" },
+          { name: "Base Plate & Occlusal Rim", price: "$25" },
+          { name: "CoCr Metal Partial + Acrylic (RPD)", price: "$270" },
+          { isIndent: true, name: "• Includes - Cocr Metal Framework", price: "$120" },
+          { isIndent: true, name: "• Includes - Teeth Wax Try In", price: "$75" },
+          { isIndent: true, name: "• Includes - Acrylic Processing", price: "$75" },
+          { isSubheader: true, name: "4. OVERDENTURE" },
+          { name: "Custom Tray", price: "$25" },
+          { name: "Base Plate & Occlusal Rim", price: "$25" },
+          { name: "Over Denture (Example: Single arch with 2 Implant Units)", price: "$800" },
+          { isIndent: true, name: "• Includes - Locator Abutment (Selected By Lab, Per Unit)", price: "$180 x 2" },
+          { isIndent: true, name: "• Includes - Locator Attachment (Selected By Lab, Per Unit)", price: "$120 x 2" },
+          { isIndent: true, name: "• Includes - Teeth Wax Try in", price: "$100" },
+          { isIndent: true, name: "• Includes - Acrylic Processing", price: "$100" }
+        ]
+      },
+      {
+        name: "MISCELLANEOUS",
+        items: [
+          { name: "Basic Repair", price: "$69" },
+          { name: "Reset Teeth (Per arch)", price: "$20" },
+          { name: "Acrylic Denture - Rebase / Hard Reline", price: "$85" },
+          { name: "Acrylic / Valplast Denture - Soft Reline", price: "$65" },
+          { name: "Bleaching Tray", price: "$50" },
+          { name: "Night Guard - Combo (Hard & Soft)", price: "$69" },
+          { name: "Sports Guard (Custom Color)", price: "$100" },
+          { name: "Snore Guard (Shark Fin)", price: "$270" },
+          { name: "Snoring Appliance With Connector Bar", price: "$170" },
+          { name: "Essix Retainer", price: "$50" },
+          { name: "Surcharge for One Additional Tooth", price: "$10" },
+          { name: "Hawley Retainer", price: "$85" },
+          { name: "Space Maintainer", price: "$50" }
+        ]
+      },
+      {
+        name: "IMPLANT (Custom Abutment Included)",
+        items: [
+          { name: "Zirconia Screwed Retained Implant Crown", price: "$285" },
+          { name: "PFM Screwed Retained Implant Crown", price: "$275" },
+          { name: "PFZ Screwed Retained Implant Crown", price: "$315" },
+          { name: "Zirconia Cementable Implant Crown", price: "$275" },
+          { name: "PFM Cementable Implant Crown", price: "$265" },
+          { name: "PFZ Cementable Implant Crown", price: "$305" },
+          { name: "Custom Scan Body", price: "Free" },
+          { name: "Surgical Guide without Sleeve", price: "$99" },
+          { name: "Surgical Guide with Sleeve", price: "$199" },
+          { name: "Surcharge for Additional Implant Site (Without Sleeve)", price: "$40" },
+          { name: "Surcharge for Additional Implant Site (With Sleeve)", price: "$80" }
+        ]
+      },
+      {
+        name: "All-On-X (One Arch Includes 10-12 Teeth, MUA abutments not included)",
+        items: [
+          { isSubheader: true, name: "SURGICAL PLANNING & PROVISIONAL" },
+          { name: "Radiographic Guide (Single Arch)", price: "$100" },
+          { name: "Edentulous Surgical Guide (Single Arch)", price: "$600" },
+          { name: "Standby Design", price: "$500" },
+          { name: "Full arch PMMA", price: "$600" },
+          { isSubheader: true, name: "Type I ：Ti-Base" },
+          { name: "All-on-4 / 6 Package", price: "$2490 / $2790" },
+          { isIndent: true, name: "• Includes - Full arch Zirconia", price: "$1,200" },
+          { isIndent: true, name: "• Includes - Full Arch Pink Porcelain on Zirconia", price: "$340" },
+          { isIndent: true, name: "• Includes - Process Fee", price: "$950 / $1250" },
+          { isSubheader: true, name: "Type II ：Ti-Bar" },
+          { name: "All-on-4 / 6 Package", price: "$3140 / $3440" },
+          { isIndent: true, name: "• Includes - Full arch Zirconia", price: "$1,200" },
+          { isIndent: true, name: "• Includes - Full Arch Pink Porcelain on Zirconia", price: "$340" },
+          { isIndent: true, name: "• Includes - Implant bar (4 implants)", price: "$1600 / $1900" },
+          { isSubheader: true, name: "Type III ：Ti-Malone Bridge" },
+          { name: "All-on-4 / 6 Package", price: "$5140 / $5440" },
+          { isIndent: true, name: "• Includes - Full arch Zirconia", price: "$1,200" },
+          { isIndent: true, name: "• Includes - Full Arch Pink Porcelain on Zirconia", price: "$340" },
+          { isIndent: true, name: "• Includes - Malone Implant bar (4 implants)", price: "$3600 / $3900" }
+        ]
+      }
+    ];
+
+    const maxRep = {
+      name: "Max Yan",
+      phone: "(508)-981-3740",
+      email: "max.yan@icodentalgroup.com",
+      promo: "Free pickup & delivery / 1st crown case free"
+    };
+
+    const maxTables = [
+      {
+        name: "CROWN & BRIDGE",
+        items: [
+          { isSubheader: true, name: "1. CERAMIC" },
+          { name: "Zirconia Solid Crown", price: "$85" },
+          { name: "Zirconia Veneer", price: "$95" },
+          { name: "Zirconia Crown (Multi-Layered)", price: "$105" },
+          { name: "Zirconia Crown-Porcelain Layered (PFZ)", price: "$120" },
+          { name: "Zirconia Maryland Bridge (1 Pontic + 2 Wings)", price: "$180" },
+          { name: "E.max Crown / Inlay / Onlay", price: "$100" },
+          { name: "E.max Veneer", price: "$110" },
+          { name: "E.max Non-prep Veneer", price: "$130" },
+          { isSubheader: true, name: "2. FULL METAL" },
+          { name: "Full Metal Crown / Inlay / Onlay - NP", price: "$60" },
+          { name: "Post & Core - NP", price: "$60" },
+          { name: "Post & Core - Add Opaque", price: "Free" },
+          { isSubheader: true, name: "3. PORCELAIN FUSED METAL" },
+          { name: "PFM - Non Precious", price: "$75" },
+          { name: "PFM - Semi Precious (Crown Price+Weight*Metal Unit Price)", price: "$100-$200", note: "*(Subject to market rate)" },
+          { name: "PFM Maryland Bridge (1 Pontic + 2 Wings)", price: "$150" }
+        ]
+      },
+      {
+        name: "IMPLANT",
+        items: [
+          { isSubheader: true, name: "1. CROWN & ABUTMENT" },
+          { name: "Screwed Retained Implant (Zirconia Crown/PFM Crown/PFZ Crown)", price: "$335/$325/$375" },
+          { isIndent: true, name: "• Includes - Titanium Custom Abutment", price: "$200" },
+          { isIndent: true, name: "• Includes - Zirconia Crown/PFM Crown/PFZ Crown", price: "$100/$90/$140" },
+          { isIndent: true, name: "• Includes - Analog", price: "$15" },
+          { isIndent: true, name: "• Includes - Soft Tissue", price: "$10" },
+          { isIndent: true, name: "• Includes - Cement Fee", price: "$10" },
+          { isIndent: true, name: "• Includes - Custom Scan Body", price: "Free" },
+          { isSubheader: true, name: "2. MISCELLANEOUS" },
+          { name: "Surgical Guide (Treatment Plan+Print+1 Implant Site) without Sleeve", price: "$169" },
+          { name: "Surgical Guide (Treatment Plan+Print+1 Implant Site) with Sleeve", price: "$199" },
+          { name: "Surcharge for 1 Additional Sleeve (Within the Same Arch)", price: "$80" },
+          { name: "Surcharge for 1 More Implant Site (Within the Same Arch)", price: "$40" }
+        ]
+      },
+      {
+        name: "DENTURE",
+        items: [
+          { isSubheader: true, name: "1. ACRYLIC" },
+          { name: "Custom Tray", price: "$25" },
+          { name: "Base Plate & Occlusal Rim", price: "$25" },
+          { name: "Acrylic Denture (Full/Partial)", price: "$200/$180" },
+          { isIndent: true, name: "• Includes - Teeth Wax Try in (Full/Partial)", price: "$100/$90" },
+          { isIndent: true, name: "• Includes - Acrylic Processing (Full/Partial)", price: "$100/$90" },
+          { name: "Acrylic Flipper - 1 to 3 Teeth in One Row, One-step Finish Directly", price: "$99" },
+          { isSubheader: true, name: "2. METAL PARTIAL" },
+          { name: "Custom Tray", price: "$25" },
+          { name: "Base Plate & Occlusal Rim", price: "$25" },
+          { name: "CoCr Metal Partial + Acrylic (RPD)", price: "$300" },
+          { isIndent: true, name: "• Includes - Cocr Metal Framework", price: "$120" },
+          { isIndent: true, name: "• Includes - Teeth Wax Try In", price: "$90" },
+          { isIndent: true, name: "• Includes - Acrylic Processing", price: "$90" },
+          { isSubheader: true, name: "3. FLEXIBLE PARTIAL" },
+          { name: "Custom Tray", price: "$25" },
+          { name: "Base Plate & Occlusal Rim", price: "$25" },
+          { name: "Valplast Partial", price: "$240" },
+          { isIndent: true, name: "• Includes - Teeth Wax Try In", price: "$100" },
+          { isIndent: true, name: "• Includes - Valplast Processing", price: "$140" },
+          { name: "Valplast Flipper - 1 to 3 Teeth in One Row, One-step Finish Directly", price: "$120" },
+          { isSubheader: true, name: "4. OVERDENTURE" },
+          { name: "Custom Tray", price: "$25" },
+          { name: "Base Plate & Occlusal Rim", price: "$25" },
+          { name: "Overdenture (X4)", price: "$1,400" },
+          { isIndent: true, name: "• Includes - Teeth Wax Try in", price: "$100" },
+          { isIndent: true, name: "• Includes - Acrylic Processing", price: "$100" },
+          { name: "Locator Abutment", price: "$180" },
+          { name: "Locator Attachment", price: "$120" },
+          { isSubheader: true, name: "5. REPAIR" },
+          { name: "Repair Basic Cost", price: "$89" },
+          { name: "Reset Teeth (Per arch)", price: "$40" },
+          { name: "Surcharge for Ivoclar 5-layered Resin Teeth (Per arch)", price: "$100" },
+          { name: "Acrylic Denture - Rebase / Hard Reline", price: "$120" },
+          { name: "Acrylic / Valplast Denture - Soft Reline", price: "$100" },
+          { name: "Extra Rush Fee if Needed (Within 5 Workdays)", price: "$50 / 100" }
+        ]
+      },
+      {
+        name: "MISCELLANEOUS",
+        items: [
+          { name: "Bleaching Tray", price: "$70" },
+          { name: "Night Guard - Hard (Milled or Pressed)", price: "$79" },
+          { name: "Night Guard - Soft (Milled or Pressed)", price: "$79" },
+          { name: "Night Guard - Combo (Hard & Soft, Milled or Pressed)", price: "$89" },
+          { name: "Sports Guard (One or Two colors)", price: "$100" },
+          { name: "Sports Guard (Custom Color)", price: "$120" },
+          { name: "Snore Guard (Shark Fin)", price: "$300" },
+          { name: "Snoring Appliance With Connector Bar", price: "$200" },
+          { name: "Essix Retainer", price: "$70" },
+          { name: "Surcharge for One Additional Tooth", price: "$20" },
+          { name: "Hawley Retainer", price: "$100" },
+          { name: "Space Maintainer", price: "$70" }
+        ]
+      },
+      {
+        name: "Personal Protective Equipment (PPE)",
+        items: [
+          { name: "ASTM Level3 Earloop Face Mask, Blue Color, 40BX/CS", price: "$160" },
+          { name: "ASTM Level3 Earloop Face Mask, BLK Color, 40BX/CS", price: "$160" },
+          { name: "ASTM Level3 Face Mask With Shield, 12BX/CS, 600Pcs/CS", price: "$120" },
+          { name: "Aoshang KN95, 1,000Pcs/CS", price: "$190" },
+          { name: "Aoshang SMS Disposable Lab Coat Hip Length Universal Size, 40GSM, 50Pcs/CS", price: "$120" },
+          { name: "Aoshang Isolation Gown, 40GSM PP, Full Length Universal Size, 100Pcs/CS", price: "$120" },
+          { name: "Goggles 120Unit/CS", price: "$180" }
+        ]
+      }
+    ];
+
+    const defaultPortals = [
+      { portal: "iTero", endpoint: "Our Lab ID: 557642 or ma.icodental.lab@gmail.com" },
+      { portal: "Medit", endpoint: "ma.icodental.lab@gmail.com" },
+      { portal: "3 shape (Trios)", endpoint: "service.crystalsmile@gmail.com" },
+      { portal: "Shining 3D", endpoint: "ma.icodental.lab@gmail.com" },
+      { portal: "CS Connect", endpoint: "jessica.xu@icodentalgroup.com" },
+      { portal: "Dentsply Sirona (DS Core)", endpoint: "ma.icodental.lab@gmail.com" },
+      { portal: "Dexis Connect", endpoint: "ma.icodental.lab@gmail.com" }
+    ];
+
+    // 辅助工具：为每一行赋予唯一 ID
+    let idSeed = 1000;
+    const ensureIds = (tableList) => {
+      if (!tableList) return [];
+      tableList.forEach(t => {
+        if (t.items) {
+          t.items.forEach(item => {
+            if (!item.id) item.id = 'item_' + (idSeed++);
+          });
+        }
+      });
+      return tableList;
+    };
+
+    // 初始化时注入 ID
+    const defaultTablesWithId = ensureIds(JSON.parse(JSON.stringify(defaultEdwardTables)));
+    const maxTablesWithId = ensureIds(JSON.parse(JSON.stringify(maxTables)));
+
+    const currentPreset = ref('edward');
+    const rep = ref(JSON.parse(localStorage.getItem('ico_rep')) || defaultEdwardRep);
+
+    const rawSavedTables = JSON.parse(localStorage.getItem('ico_tables')) || defaultEdwardTables;
+    const tables = ref(ensureIds(rawSavedTables));
+    
+    const portals = ref(JSON.parse(localStorage.getItem('ico_portals')) || defaultPortals);
+    const subMaxHeight = ref(Number(localStorage.getItem('ico_submax')) || 960);
+
+    // 当前被高亮定位的 item ID
+    const activeItemId = ref(null);
+    // ★ 核心功能 2：点击右侧，左侧自动平滑滚动并高亮
+    const locateItemInPanel = (id) => {
+      if (!id) return;
+      activeItemId.value = id;
+      
+      const el = document.getElementById('panel-item-' + id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // 自动将焦点定位到输入框
+        const input = el.querySelector('input');
+        if (input) input.focus();
+      }
+
+      // 2.5 秒后自动淡化高亮光晕
+      setTimeout(() => {
+        if (activeItemId.value === id) {
+          activeItemId.value = null;
+        }
+      }, 2500);
+    };
+
+    watch([rep, tables, portals, subMaxHeight], () => {
+      localStorage.setItem('ico_rep', JSON.stringify(rep.value));
+      localStorage.setItem('ico_tables', JSON.stringify(tables.value));
+      localStorage.setItem('ico_portals', JSON.stringify(portals.value));
+      localStorage.setItem('ico_submax', subMaxHeight.value);
+    }, { deep: true });
+
+    const loadPreset = (key) => {
+      currentPreset.value = key;
+      if (key === 'edward') {
+        rep.value = JSON.parse(JSON.stringify(defaultEdwardRep));
+        tables.value = ensureIds(JSON.parse(JSON.stringify(defaultEdwardTables)));
+        portals.value = JSON.parse(JSON.stringify(defaultPortals));
+      } else {
+        rep.value = JSON.parse(JSON.stringify(maxRep));
+        tables.value = ensureIds(JSON.parse(JSON.stringify(maxTables)));
+        portals.value = JSON.parse(JSON.stringify(defaultPortals));
+      }
+    };
+
+    const resetToDefault = () => {
+      localStorage.clear();
+      subMaxHeight.value = 960;
+      loadPreset('edward');
+    };
+
+    const addItem = (table) => {
+      table.items.push({ id: 'item_' + (idSeed++), name: "New Product", price: "$99" });
+    };
+
+    const addSubheader = (table) => {
+      table.items.push({ id: 'item_' + (idSeed++), isSubheader: true, name: "NEW CATEGORY" });
+    };
+
+    const removeItem = (table, index) => {
+      table.items.splice(index, 1);
+    };
+
+    const formatPortalEndpoint = (text) => {
+      if (!text) return '';
+      let res = text.replace(/557642/g, '<strong>557642</strong>');
+      res = res.replace(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/g, '<a href="mailto:$1"><strong>$1</strong></a>');
+      return res;
+    };
+
+    // ==========================================
+    // 智能虚拟分页引擎 (支持手动 [✂切页] + 可调水线)
+    // ==========================================
+    const paginatedPages = computed(() => {
+      const pages = [];
+      let currentPage = { fragments: [] };
+      pages.push(currentPage);
+
+      const portalCount = (portals.value && portals.value.length) ? portals.value.length : 7;
+      const portalHeight = 34 + (portalCount * 32); 
+      
+      // P1 留给产品表格的高度：留足安全缓冲区，严禁撑破
+      const P1_MAX_HEIGHT = subMaxHeight.value - 240 - (rep.value.promo ? 36 : 0) - portalHeight;
+
+      let currentHeight = 0;
+      let pageIndex = 0;
+
+      tables.value.forEach(table => {
+        let isFirstPartOfTable = true;
+        let currentFragment = { tableName: table.name, isFirstPart: true, items: [] };
+
+        table.items.forEach(item => {
+          let itemCost = 34; // 标准行高评估
+          if (item.isSubheader) itemCost = 30; 
+          if (item.note) itemCost += 14; 
+
+          let headerCost = (isFirstPartOfTable && currentFragment.items.length === 0) ? 38 : 0;
+          let maxAllowed = (pageIndex === 0) ? P1_MAX_HEIGHT : subMaxHeight.value;
+
+          const forceBreak = item.breakBefore === true;
+          // 溢出判定：加上当前行会导致超标，且本页已存有内容
+          const heightOverflow = (currentHeight + headerCost + itemCost > maxAllowed) && (currentFragment.items.length > 0);
+
+          if ((forceBreak || heightOverflow) && currentFragment.items.length > 0) {
+            currentPage.fragments.push(currentFragment);
+            
+            currentPage = { fragments: [] };
+            pages.push(currentPage);
+            pageIndex++;
+            currentHeight = 0;
+
+            isFirstPartOfTable = false;
+            currentFragment = { tableName: table.name, isFirstPart: false, items: [] };
+            headerCost = 0;
+          }
+
+          currentFragment.items.push(item);
+          currentHeight += (headerCost + itemCost);
+        });
+
+        if (currentFragment.items.length > 0) {
+          currentPage.fragments.push(currentFragment);
+          currentHeight += 12; 
+        }
+      });
+
+      return pages;
+    });
+
+    const printPDF = () => { window.print(); };
+
+    return {
+      rep, portals, tables, currentPreset, subMaxHeight, activeItemId,
+      loadPreset, resetToDefault, addItem, addSubheader, removeItem,
+      formatPortalEndpoint, paginatedPages, printPDF, locateItemInPanel
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
