@@ -7,8 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Montserrat:wght@600;700;800;900&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <!-- 引入轻量级 Vue 3 -->
+  <!-- 引入轻量级 Vue 3 与无依赖原生拖拽库 SortableJS -->
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
   <style>
     @page {
@@ -38,8 +39,8 @@
 
     /* 左侧控制面板 */
     .sidebar {
-      width: 460px;
-      min-width: 460px;
+      width: 490px;
+      min-width: 490px;
       background: #1e293b;
       color: #f1f5f9;
       display: flex;
@@ -49,46 +50,70 @@
     }
 
     .sidebar-header {
-      padding: 18px 20px;
+      padding: 14px 18px;
       background: #0f172a;
       border-bottom: 1px solid #334155;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 10px;
     }
 
     .sidebar-header h2 {
       font-family: 'Montserrat', sans-serif;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 800;
       color: #38bdf8;
+      white-space: nowrap;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-reset-top {
+      background: #334155;
+      color: #cbd5e1;
+      border: 1px solid #475569;
+      padding: 6px 12px;
+      font-weight: 600;
+      font-size: 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-reset-top:hover {
+      background: #ef4444;
+      color: #ffffff;
+      border-color: #ef4444;
     }
 
     .btn-print {
       background: #0284c7;
       color: #ffffff;
       border: none;
-      padding: 8px 16px;
+      padding: 7px 14px;
       font-weight: 700;
-      font-size: 13px;
+      font-size: 12.5px;
       border-radius: 6px;
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 6px;
     }
-
     .btn-print:hover {
       background: #0369a1;
     }
 
     .sidebar-content {
-      padding: 20px;
+      padding: 16px;
       overflow-y: auto;
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
     }
 
     .panel-box {
@@ -132,35 +157,91 @@
       border-radius: 5px;
       outline: none;
     }
-
     .form-control:focus {
       border-color: #38bdf8;
     }
 
+    /* 拖拽手柄与卡片容器 */
     .table-editor-item {
       background: #1b2636;
       border: 1px solid #2d3f56;
-      border-radius: 6px;
+      border-radius: 7px;
       padding: 10px;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
+      position: relative;
+    }
+
+    .table-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #2a3b50;
+      gap: 8px;
+    }
+
+    .table-drag-handle {
+      cursor: grab;
+      color: #64748b;
+      font-size: 14px;
+      padding: 0 4px;
+      user-select: none;
+    }
+    .table-drag-handle:active {
+      cursor: grabbing;
     }
 
     .row-edit-grid {
       display: grid;
-      grid-template-columns: 1fr 75px 32px 28px;
+      grid-template-columns: 18px 1fr 75px 30px 48px;
       gap: 5px;
       margin-bottom: 6px;
       align-items: center;
     }
 
-    .btn-del {
-      background: #ef4444;
-      color: white;
-      border: none;
+    .row-drag-handle {
+      cursor: grab;
+      color: #475569;
+      font-size: 12px;
+      text-align: center;
+      user-select: none;
+    }
+    .row-drag-handle:active {
+      cursor: grabbing;
+    }
+
+    /* 隐藏状态样式与开关按钮 */
+    .row-hidden {
+      opacity: 0.45;
+    }
+    .row-hidden input {
+      text-decoration: line-through;
+      color: #94a3b8 !important;
+    }
+
+    .btn-toggle-vis {
+      border: 1px solid #334155;
       border-radius: 4px;
       cursor: pointer;
-      font-weight: bold;
+      font-size: 10px;
+      font-weight: 700;
       height: 31px;
+      padding: 0 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .btn-toggle-vis.is-shown {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.35);
+    }
+    .btn-toggle-vis.is-hidden {
+      background: #334155;
+      color: #94a3b8;
+      border-color: #475569;
     }
 
     .btn-break {
@@ -187,9 +268,28 @@
       padding: 5px;
       border-radius: 4px;
       cursor: pointer;
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 600;
       margin-top: 4px;
+    }
+    .btn-add-row:hover {
+      background: #3b4d66;
+    }
+
+    .btn-add-table {
+      background: rgba(56, 189, 248, 0.1);
+      color: #38bdf8;
+      border: 1.5px dashed #38bdf8;
+      width: 100%;
+      padding: 9px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+    .btn-add-table:hover {
+      background: rgba(56, 189, 248, 0.2);
     }
 
     .preset-btns {
@@ -208,7 +308,6 @@
       font-size: 12px;
       font-weight: 600;
     }
-
     .btn-preset.active {
       background: #0284c7;
       border-color: #38bdf8;
@@ -413,7 +512,7 @@
       box-shadow: 0 4px 14px rgba(16, 76, 130, 0.06);
       margin-bottom: 10px;
     }
-    /* 避免任何单行在视口或打印时被腰斩 */
+
     .product-table tr, .portal-table tr {
       page-break-inside: avoid !important;
       break-inside: avoid !important;
@@ -555,7 +654,7 @@
       border-radius: 4px;
     }
 
-    /* 右侧预览表格支持点击交互（悬浮提示） */
+    /* 右侧交互 */
     .custom-table tr {
       cursor: pointer;
       transition: background-color 0.15s ease;
@@ -564,7 +663,6 @@
       background-color: rgba(56, 189, 248, 0.15) !important;
     }
 
-    /* 左侧定位后的呼吸高亮效果 */
     .highlight-focus {
       border: 1.5px solid #f59e0b !important;
       background-color: rgba(245, 158, 11, 0.15) !important;
@@ -584,14 +682,14 @@
       }
 
       #app {
-        display: block !important; /* 解除 flex 布局对高度的锁死 */
+        display: block !important;
         height: auto !important;
         min-height: auto !important;
         overflow: visible !important;
       }
 
       .sidebar {
-        display: none !important; /* 彻底移除侧边栏 */
+        display: none !important;
       }
 
       .preview-stage {
@@ -615,10 +713,9 @@
         box-shadow: none !important;
         page-break-after: always !important;
         break-after: page !important;
-        overflow: hidden !important; /* 保证每张 A4 纸独立整洁 */
+        overflow: hidden !important;
       }
 
-      /* 打印时取消交互悬浮效果 */
       a {
         text-decoration: none !important;
         color: inherit !important;
@@ -638,7 +735,10 @@
   <aside class="sidebar">
     <div class="sidebar-header">
       <h2>ICO Flyer Studio</h2>
-      <button class="btn-print" @click="printPDF">Print PDF</button>
+      <div class="top-actions">
+        <button class="btn-reset-top" @click="confirmReset">Reset Default</button>
+        <button class="btn-print" @click="printPDF">Print PDF</button>
+      </div>
     </div>
 
     <div class="sidebar-content">
@@ -651,14 +751,14 @@
         </div>
       </div>
 
-      <!-- 高度容差滑块（微调水线） -->
+      <!-- 高度容差滑块 -->
       <div class="panel-box">
         <div class="panel-title">
           <span>Safety Margin Height</span>
           <span style="color:#38bdf8">{{ subMaxHeight }}px</span>
         </div>
         <input type="range" min="900" max="1000" step="5" v-model.number="subMaxHeight" style="width:100%; cursor:pointer;">
-        <div style="font-size:11px; color:#94a3b8; margin-top:4px;">Drag left to trigger page break earlier, right to pack more rows.</div>
+        <div style="font-size:11px; color:#94a3b8; margin-top:4px;">Drag left to break earlier, right to pack more rows.</div>
       </div>
 
       <!-- 名片信息 -->
@@ -682,48 +782,69 @@
         </div>
       </div>
 
-      <!-- Portal 编辑 -->
+      <!-- Portal 编辑（不可拖拽，保持锁定） -->
       <div class="panel-box">
         <div class="panel-title">Scanner Portal Editor</div>
         <div v-for="(pItem, pIdx) in portals" :key="pIdx" class="row-edit-grid" style="grid-template-columns: 100px 1fr 28px;">
           <input type="text" class="form-control" style="font-size:11.5px;" v-model="pItem.portal">
           <input type="text" class="form-control" style="font-size:11.5px;" v-model="pItem.endpoint">
-          <button class="btn-del" @click="portals.splice(pIdx, 1)">×</button>
-        </div>
+          <button class="btn-toggle-vis" :class="pItem.hidden ? 'is-hidden' : 'is-shown'" @click="pItem.hidden = !pItem.hidden" :title="pItem.hidden ? 'Click to show portal' : 'Click to hide portal'">
+            {{ pItem.hidden ? 'Hide' : 'Shown' }}
+          </button>        </div>
         <button class="btn-add-row" @click="portals.push({ portal: 'New Portal', endpoint: 'email@example.com' })">+ Add Scanner Connection</button>
       </div>
 
-      <!-- 产品目录编辑器 (含 [✂切页] 按钮) -->
+      <!-- 产品目录编辑器 (支持大表排序、Subheader/行级排序、新增大表、Shown/Hidden) -->
       <div class="panel-box">
         <div class="panel-title">Product Catalog Editor</div>
-        <div v-for="(table, tIndex) in tables" :key="tIndex" class="table-editor-item">
-          <div style="font-weight:700; font-size:12px; color:#38bdf8; margin-bottom:8px; display:flex; justify-content:space-between;">
-            <span>{{ table.name }}</span>
-            <span style="font-size:11px; color:#94a3b8;">{{ table.items.length }} items</span>
-          </div>
+        
+        <!-- 表格级拖拽容器 -->
+        <div ref="tablesContainer">
+          <div v-for="(table, tIndex) in tables" :key="table.id || tIndex" class="table-editor-item" :data-id="table.id">
+            
+            <div class="table-header-bar">
+              <div style="display:flex; align-items:center; gap:6px; flex:1;">
+                <span class="table-drag-handle" title="Drag to reorder table">⋮⋮</span>
+                <input type="text" class="form-control" style="font-size:12px; font-weight:700; color:#38bdf8; padding:3px 6px; height:26px;" v-model="table.name">
+              </div>
+              <button v-if="tables.length > 1" class="btn-reset-top" style="padding:2px 6px; font-size:10px;" @click="deleteTable(tIndex)" title="Delete this entire table">Delete Table</button>
+            </div>
 
-          <div v-for="(item, iIndex) in table.items" :key="item.id || iIndex" :id="'panel-item-' + item.id">
-            <div class="row-edit-grid">
-              <input type="text" class="form-control" style="font-size:11.5px;" v-model="item.name" :class="{'highlight-focus': activeItemId === item.id}">
-              <input type="text" class="form-control" style="font-size:11.5px;" v-model="item.price" v-if="!item.isSubheader" :class="{'highlight-focus': activeItemId === item.id}">
-              <div style="text-align:center; color:#94a3b8; font-size:10px;" v-else>SUB</div>
-              
-              <button class="btn-break" :class="{active: item.breakBefore}" @click="item.breakBefore = !item.breakBefore" title="Click to force page break before this row">
-                ✂切页
-              </button>
-              
-              <button class="btn-del" @click="removeItem(table, iIndex)">×</button>
+            <!-- 行级/Subheader 级拖拽容器 -->
+            <div :ref="el => setRowContainer(el, tIndex)">
+              <div v-for="(item, iIndex) in table.items" :key="item.id" :id="'panel-item-' + item.id" :data-id="item.id" :class="{'row-hidden': item.hidden === true}">
+                <div class="row-edit-grid">
+                  <span class="row-drag-handle" title="Drag to reorder row">⋮⋮</span>
+                  
+                  <input type="text" class="form-control" style="font-size:11.5px;" v-model="item.name" :class="{'highlight-focus': activeItemId === item.id}">
+                  
+                  <input type="text" class="form-control" style="font-size:11.5px;" v-model="item.price" v-if="!item.isSubheader" :class="{'highlight-focus': activeItemId === item.id}">
+                  <div style="text-align:center; color:#fbbf24; font-size:10px; font-weight:700;" v-else>SUB</div>
+                  
+                  <!-- 手动切页 -->
+                  <button class="btn-break" :class="{active: item.breakBefore}" @click="item.breakBefore = !item.breakBefore" title="Click to force page break before this item">
+                    ✂
+                  </button>
+                  
+                  <!-- Shown / Hidden 开关按钮 -->
+                  <button class="btn-toggle-vis" :class="item.hidden ? 'is-hidden' : 'is-shown'" @click="item.hidden = !item.hidden" :title="item.hidden ? 'Click to show item' : 'Click to hide item'">
+                    {{ item.hidden ? 'Hide' : 'Shown' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:6px;">
+              <button class="btn-add-row" @click="addItem(table)">+ Add Row</button>
+              <button class="btn-add-row" style="color:#fbbf24;" @click="addSubheaderSmart(table)">+ Subheader</button>
             </div>
           </div>
-
-          <div style="display:flex; gap:6px;">
-            <button class="btn-add-row" @click="addItem(table)">+ Add Row</button>
-            <button class="btn-add-row" style="color:#fbbf24;" @click="addSubheader(table)">+ Subheader</button>
-          </div>
         </div>
+
+        <!-- 新建大分类表格按钮 -->
+        <button class="btn-add-table" @click="addNewTable">+ Add New Table / Category</button>
       </div>
 
-      <button style="background:none; border:1px solid #475569; color:#94a3b8; padding:8px; border-radius:6px; cursor:pointer;" @click="resetToDefault">Reset All to Default</button>
     </div>
   </aside>
 
@@ -783,15 +904,17 @@
           </div>
           <table class="custom-table portal-table">
             <tbody>
-              <tr v-for="(pItem, pIdx) in portals" :key="pIdx">
-                <td class="col-portal">{{ pItem.portal }}</td>
-                <td class="col-endpoint" v-html="formatPortalEndpoint(pItem.endpoint)"></td>
-              </tr>
+              <template v-for="(pItem, pIdx) in portals" :key="pIdx">
+                <tr v-if="!pItem.hidden">
+                  <td class="col-portal">{{ pItem.portal }}</td>
+                  <td class="col-endpoint" v-html="formatPortalEndpoint(pItem.endpoint)"></td>
+                </tr>
+              </template>
             </tbody>
           </table>
         </section>
 
-        <!-- 页面内自动或手动切页后的表格片段 -->
+        <!-- 动态表格片段 -->
         <section v-for="(frag, fIndex) in page.fragments" :key="fIndex" class="table-container">
           <div v-if="frag.isFirstPart" class="product-header">
             <span>{{ frag.tableName }}</span>
@@ -829,7 +952,7 @@
 </div>
 
 <script>
-const { createApp, ref, computed, watch } = Vue;
+const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
 
 createApp({
   setup() {
@@ -851,7 +974,7 @@ createApp({
           { name: "Zirconia Crown - Porcelain Layered (PFZ)", price: "$85" },
           { name: "Full Metal Crown - Non Precious", price: "$50" },
           { name: "PFM - Non Precious", price: "$55" },
-          { name: "Semi-precious (Pd52% Au15%) - Noble Alloy - PFM/FMC", price: "$66/g", note: "*(Subject to market rate)" },
+          { name: "PFM - Semi-precious(Crown Price + Weight * Metal Unit Price)", price: "$100-$200", note: "*(Subject to market rate)" },
           { name: "E.max Crown", price: "$90" }
         ]
       },
@@ -1092,62 +1215,124 @@ createApp({
       { portal: "Dexis Connect", endpoint: "ma.icodental.lab@gmail.com" }
     ];
 
-    // 辅助工具：为每一行赋予唯一 ID
-    let idSeed = 1000;
+    let idSeed = 2000;
     const ensureIds = (tableList) => {
       if (!tableList) return [];
-      tableList.forEach(t => {
+      tableList.forEach((t, tIdx) => {
+        if (!t.id) t.id = 'tbl_' + (idSeed++);
         if (t.items) {
           t.items.forEach(item => {
             if (!item.id) item.id = 'item_' + (idSeed++);
+            if (item.hidden === undefined) item.hidden = false;
           });
         }
       });
       return tableList;
     };
 
-    // 初始化时注入 ID
-    const defaultTablesWithId = ensureIds(JSON.parse(JSON.stringify(defaultEdwardTables)));
-    const maxTablesWithId = ensureIds(JSON.parse(JSON.stringify(maxTables)));
-
     const currentPreset = ref('edward');
     const rep = ref(JSON.parse(localStorage.getItem('ico_rep')) || defaultEdwardRep);
-
     const rawSavedTables = JSON.parse(localStorage.getItem('ico_tables')) || defaultEdwardTables;
     const tables = ref(ensureIds(rawSavedTables));
-    
     const portals = ref(JSON.parse(localStorage.getItem('ico_portals')) || defaultPortals);
     const subMaxHeight = ref(Number(localStorage.getItem('ico_submax')) || 960);
-
-    // 当前被高亮定位的 item ID
     const activeItemId = ref(null);
-    // ★ 核心功能 2：点击右侧，左侧自动平滑滚动并高亮
-    const locateItemInPanel = (id) => {
-      if (!id) return;
-      activeItemId.value = id;
-      
-      const el = document.getElementById('panel-item-' + id);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // 自动将焦点定位到输入框
-        const input = el.querySelector('input');
-        if (input) input.focus();
-      }
 
-      // 2.5 秒后自动淡化高亮光晕
-      setTimeout(() => {
-        if (activeItemId.value === id) {
-          activeItemId.value = null;
-        }
-      }, 2500);
+    const tablesContainer = ref(null);
+    const rowContainers = ref([]);
+    const setRowContainer = (el, idx) => {
+      if (el) rowContainers.value[idx] = el;
     };
 
+    // 拖拽初始化
+    const initSortables = () => {
+      // 1. 大表格级拖拽
+      if (tablesContainer.value) {
+        new Sortable(tablesContainer.value, {
+          handle: '.table-drag-handle',
+          animation: 200,
+          onEnd: (evt) => {
+            const moved = tables.value.splice(evt.oldIndex, 1)[0];
+            tables.value.splice(evt.newIndex, 0, moved);
+          }
+        });
+      }
+      // 2. 行级/Subheader 级拖拽
+      rowContainers.value.forEach((el, tIdx) => {
+        if (el) {
+          new Sortable(el, {
+            handle: '.row-drag-handle',
+            animation: 180,
+            onEnd: (evt) => {
+              const table = tables.value[tIdx];
+              if (table && table.items) {
+                const moved = table.items.splice(evt.oldIndex, 1)[0];
+                table.items.splice(evt.newIndex, 0, moved);
+              }
+            }
+          });
+        }
+      });
+    };
+
+    onMounted(() => {
+      nextTick(() => {
+        initSortables();
+      });
+    });
+
+    watch(tables, () => {
+      nextTick(() => {
+        initSortables();
+      });
+    }, { deep: true });
+
+    // 数据持久化
     watch([rep, tables, portals, subMaxHeight], () => {
       localStorage.setItem('ico_rep', JSON.stringify(rep.value));
       localStorage.setItem('ico_tables', JSON.stringify(tables.value));
       localStorage.setItem('ico_portals', JSON.stringify(portals.value));
       localStorage.setItem('ico_submax', subMaxHeight.value);
     }, { deep: true });
+
+    // 智能 Subheader 添加
+    const addSubheaderSmart = (table) => {
+      const hasSub = table.items.some(i => i.isSubheader);
+      const newSub = { id: 'item_' + (idSeed++), isSubheader: true, name: "NEW CATEGORY", hidden: false };
+      if (!hasSub) {
+        // 无分类表：智能置顶
+        table.items.unshift(newSub);
+      } else {
+        // 已有分类表：追加在末尾
+        table.items.push(newSub);
+      }
+    };
+
+    // 新加大表格
+    const addNewTable = () => {
+      tables.value.push({
+        id: 'tbl_' + (idSeed++),
+        name: "NEW SERVICE CATALOG",
+        items: [
+          { id: 'item_' + (idSeed++), name: "Standard Service Item", price: "$95", hidden: false }
+        ]
+      });
+    };
+
+    const deleteTable = (index) => {
+      if (confirm(`Are you sure you want to delete table "${tables.value[index].name}"?`)) {
+        tables.value.splice(index, 1);
+      }
+    };
+
+    // 顶部重置
+    const confirmReset = () => {
+      if (confirm("Reset all settings and tables to default? All local customizations will be cleared.")) {
+        localStorage.clear();
+        subMaxHeight.value = 960;
+        loadPreset('edward');
+      }
+    };
 
     const loadPreset = (key) => {
       currentPreset.value = key;
@@ -1162,22 +1347,22 @@ createApp({
       }
     };
 
-    const resetToDefault = () => {
-      localStorage.clear();
-      subMaxHeight.value = 960;
-      loadPreset('edward');
-    };
-
     const addItem = (table) => {
-      table.items.push({ id: 'item_' + (idSeed++), name: "New Product", price: "$99" });
+      table.items.push({ id: 'item_' + (idSeed++), name: "New Product Item", price: "$99", hidden: false });
     };
 
-    const addSubheader = (table) => {
-      table.items.push({ id: 'item_' + (idSeed++), isSubheader: true, name: "NEW CATEGORY" });
-    };
-
-    const removeItem = (table, index) => {
-      table.items.splice(index, 1);
+    const locateItemInPanel = (id) => {
+      if (!id) return;
+      activeItemId.value = id;
+      const el = document.getElementById('panel-item-' + id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const input = el.querySelector('input');
+        if (input) input.focus();
+      }
+      setTimeout(() => {
+        if (activeItemId.value === id) activeItemId.value = null;
+      }, 2500);
     };
 
     const formatPortalEndpoint = (text) => {
@@ -1187,29 +1372,28 @@ createApp({
       return res;
     };
 
-    // ==========================================
-    // 智能虚拟分页引擎 (支持手动 [✂切页] + 可调水线)
-    // ==========================================
+    // 虚拟分页流水线 (自动过滤隐藏行 hidden === true)
     const paginatedPages = computed(() => {
       const pages = [];
       let currentPage = { fragments: [] };
       pages.push(currentPage);
 
-      const portalCount = (portals.value && portals.value.length) ? portals.value.length : 7;
+      const portalCount = (portals.value) ? portals.value.filter(p => !p.hidden).length : 7;
       const portalHeight = 34 + (portalCount * 32); 
-      
-      // P1 留给产品表格的高度：留足安全缓冲区，严禁撑破
       const P1_MAX_HEIGHT = subMaxHeight.value - 240 - (rep.value.promo ? 36 : 0) - portalHeight;
 
       let currentHeight = 0;
       let pageIndex = 0;
 
       tables.value.forEach(table => {
+        const activeItems = table.items.filter(item => !item.hidden);
+        if (activeItems.length === 0) return;
+
         let isFirstPartOfTable = true;
         let currentFragment = { tableName: table.name, isFirstPart: true, items: [] };
 
-        table.items.forEach(item => {
-          let itemCost = 34; // 标准行高评估
+        activeItems.forEach(item => {
+          let itemCost = 34; 
           if (item.isSubheader) itemCost = 30; 
           if (item.note) itemCost += 14; 
 
@@ -1217,20 +1401,35 @@ createApp({
           let maxAllowed = (pageIndex === 0) ? P1_MAX_HEIGHT : subMaxHeight.value;
 
           const forceBreak = item.breakBefore === true;
-          // 溢出判定：加上当前行会导致超标，且本页已存有内容
+          // 当前页是否已经放置了内容（包含之前的表格或当前表格的前置行）
+          const pageHasContent = currentPage.fragments.length > 0 || currentFragment.items.length > 0;
+          
+          // 溢出判定：自然高度超出
           const heightOverflow = (currentHeight + headerCost + itemCost > maxAllowed) && (currentFragment.items.length > 0);
 
-          if ((forceBreak || heightOverflow) && currentFragment.items.length > 0) {
-            currentPage.fragments.push(currentFragment);
+          // ★ 核心修复：只要设置了切页且当前页有内容，或者自然高度溢出，立即换页
+          if ((forceBreak && pageHasContent) || heightOverflow) {
+            // 如果当前表格片段已有内容，存入当前页
+            if (currentFragment.items.length > 0) {
+              currentPage.fragments.push(currentFragment);
+            }
             
+            // 开启新页面
             currentPage = { fragments: [] };
             pages.push(currentPage);
             pageIndex++;
             currentHeight = 0;
 
+            // 跨页后重新开启片段：
+            // 如果本表格之前从未渲染过任何行，跨页后它依然是该表的首发（显示表头）
+            // 如果之前已经有一部分在上一页，跨页后无缝续接（隐藏表头）
+            currentFragment = { 
+              tableName: table.name, 
+              isFirstPart: isFirstPartOfTable && currentFragment.items.length === 0, 
+              items: [] 
+            };
             isFirstPartOfTable = false;
-            currentFragment = { tableName: table.name, isFirstPart: false, items: [] };
-            headerCost = 0;
+            headerCost = currentFragment.isFirstPart ? 38 : 0;
           }
 
           currentFragment.items.push(item);
@@ -1250,7 +1449,8 @@ createApp({
 
     return {
       rep, portals, tables, currentPreset, subMaxHeight, activeItemId,
-      loadPreset, resetToDefault, addItem, addSubheader, removeItem,
+      tablesContainer, setRowContainer,
+      loadPreset, confirmReset, addItem, addSubheaderSmart, addNewTable, deleteTable,
       formatPortalEndpoint, paginatedPages, printPDF, locateItemInPanel
     };
   }
