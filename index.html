@@ -654,7 +654,6 @@
       border-radius: 4px;
     }
 
-    /* 右侧交互 */
     .custom-table tr {
       cursor: pointer;
       transition: background-color 0.15s ease;
@@ -751,6 +750,27 @@
         </div>
       </div>
 
+      <!-- ★ Lab / Service Center Branding 面板（支持动态修改 Lab 名称、Slogan 与 Lab Service 电话） -->
+      <div class="panel-box">
+        <div class="panel-title">Lab / Service Center Title</div>
+        <div class="form-group">
+          <label>Organization / Parent Group (Fixed)</label>
+          <input type="text" class="form-control" value="ICO Dental Group" disabled style="opacity: 0.65; cursor: not-allowed;">
+        </div>
+        <div class="form-group">
+          <label>Lab / Service Center Name</label>
+          <input type="text" class="form-control" v-model="branding.labName" placeholder="e.g. Crystal Smile Lab">
+        </div>
+        <div class="form-group">
+          <label>Brand Slogan / Tagline</label>
+          <input type="text" class="form-control" v-model="branding.slogan" placeholder="e.g. Your Trusted Partner in Digital Dental Solutions">
+        </div>
+        <div class="form-group">
+          <label>Lab Service Hotline / Phone</label>
+          <input type="text" class="form-control" v-model="branding.labPhone" placeholder="e.g. (866)-779-3210">
+        </div>
+      </div>
+
       <!-- 高度容差滑块 -->
       <div class="panel-box">
         <div class="panel-title">
@@ -790,15 +810,15 @@
           <input type="text" class="form-control" style="font-size:11.5px;" v-model="pItem.endpoint">
           <button class="btn-toggle-vis" :class="pItem.hidden ? 'is-hidden' : 'is-shown'" @click="pItem.hidden = !pItem.hidden" :title="pItem.hidden ? 'Click to show portal' : 'Click to hide portal'">
             {{ pItem.hidden ? 'Hide' : 'Shown' }}
-          </button>        </div>
+          </button>
+        </div>
         <button class="btn-add-row" @click="portals.push({ portal: 'New Portal', endpoint: 'email@example.com' })">+ Add Scanner Connection</button>
       </div>
 
-      <!-- 产品目录编辑器 (支持大表排序、Subheader/行级排序、新增大表、Shown/Hidden) -->
+      <!-- 产品目录编辑器 -->
       <div class="panel-box">
         <div class="panel-title">Product Catalog Editor</div>
         
-        <!-- 表格级拖拽容器 -->
         <div ref="tablesContainer">
           <div v-for="(table, tIndex) in tables" :key="table.id || tIndex" class="table-editor-item" :data-id="table.id">
             
@@ -810,7 +830,6 @@
               <button v-if="tables.length > 1" class="btn-reset-top" style="padding:2px 6px; font-size:10px;" @click="deleteTable(tIndex)" title="Delete this entire table">Delete Table</button>
             </div>
 
-            <!-- 行级/Subheader 级拖拽容器 -->
             <div :ref="el => setRowContainer(el, tIndex)">
               <div v-for="(item, iIndex) in table.items" :key="item.id" :id="'panel-item-' + item.id" :data-id="item.id" :class="{'row-hidden': item.hidden === true}">
                 <div class="row-edit-grid">
@@ -821,12 +840,10 @@
                   <input type="text" class="form-control" style="font-size:11.5px;" v-model="item.price" v-if="!item.isSubheader" :class="{'highlight-focus': activeItemId === item.id}">
                   <div style="text-align:center; color:#fbbf24; font-size:10px; font-weight:700;" v-else>SUB</div>
                   
-                  <!-- 手动切页 -->
                   <button class="btn-break" :class="{active: item.breakBefore}" @click="item.breakBefore = !item.breakBefore" title="Click to force page break before this item">
                     ✂
                   </button>
                   
-                  <!-- Shown / Hidden 开关按钮 -->
                   <button class="btn-toggle-vis" :class="item.hidden ? 'is-hidden' : 'is-shown'" @click="item.hidden = !item.hidden" :title="item.hidden ? 'Click to show item' : 'Click to hide item'">
                     {{ item.hidden ? 'Hide' : 'Shown' }}
                   </button>
@@ -841,7 +858,6 @@
           </div>
         </div>
 
-        <!-- 新建大分类表格按钮 -->
         <button class="btn-add-table" @click="addNewTable">+ Add New Table / Category</button>
       </div>
 
@@ -858,8 +874,8 @@
           <div class="brand-col">
             <div>
               <h1>ICO Dental Group</h1>
-              <h2>Crystal Smile Lab</h2>
-              <p class="slogan">Your Trusted Partner in Digital Dental Solutions</p>
+              <h2>{{ branding.labName }}</h2>
+              <p class="slogan">{{ branding.slogan }}</p>
             </div>
             
             <div>
@@ -868,9 +884,10 @@
                   <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
                   <span>{{ rep.name }}: <a :href="'tel:' + rep.phone"><strong>{{ rep.phone }}</strong></a></span>
                 </div>
+                <!-- ★ 动态 Lab Service 电话 -->
                 <div class="contact-item">
                   <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-                  <span>Lab Service: <a href="tel:8667793210"><strong>(866)-779-3210</strong></a></span>
+                  <span>Lab Service: <a :href="'tel:' + cleanPhone(branding.labPhone)"><strong>{{ branding.labPhone }}</strong></a></span>
                 </div>
                 <div class="contact-item">
                   <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
@@ -888,11 +905,11 @@
           </div>
         </header>
 
-        <!-- 第 2/3/4 页 Subheader -->
+        <!-- 第 2/3/4 页 Subheader (★ Lab 名称与电话号码全自动同步) -->
         <header v-else class="header-subpage">
-          <div class="sub-brand">ICO Dental Group <span>• Professional Price List</span></div>
+          <div class="sub-brand">ICO Dental Group • {{ branding.labName || 'Price List' }}</div>
           <div class="sub-contact">
-            Direct: <a :href="'tel:' + rep.phone">{{ rep.phone }}</a> | Lab: <a href="tel:8667793210">(866)-779-3210</a>
+            Direct: <a :href="'tel:' + rep.phone">{{ rep.phone }}</a> | Lab: <a :href="'tel:' + cleanPhone(branding.labPhone)">{{ branding.labPhone }}</a>
           </div>
         </header>
 
@@ -956,6 +973,13 @@ const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
 
 createApp({
   setup() {
+    // 默认 Lab、Slogan 与专线电话
+    const defaultBranding = {
+      labName: "Crystal Smile Lab",
+      slogan: "Your Trusted Partner in Digital Dental Solutions",
+      labPhone: "(866)-779-3210"
+    };
+
     const defaultEdwardRep = {
       name: "Edward Shan",
       phone: "774-277-9053",
@@ -1231,6 +1255,11 @@ createApp({
     };
 
     const currentPreset = ref('edward');
+    
+    // 从 localStorage 读取或使用默认值，并确保 labPhone 字段存在
+    const savedBranding = JSON.parse(localStorage.getItem('ico_branding'));
+    const branding = ref(Object.assign({}, defaultBranding, savedBranding));
+
     const rep = ref(JSON.parse(localStorage.getItem('ico_rep')) || defaultEdwardRep);
     const rawSavedTables = JSON.parse(localStorage.getItem('ico_tables')) || defaultEdwardTables;
     const tables = ref(ensureIds(rawSavedTables));
@@ -1246,7 +1275,6 @@ createApp({
 
     // 拖拽初始化
     const initSortables = () => {
-      // 1. 大表格级拖拽
       if (tablesContainer.value) {
         new Sortable(tablesContainer.value, {
           handle: '.table-drag-handle',
@@ -1257,7 +1285,6 @@ createApp({
           }
         });
       }
-      // 2. 行级/Subheader 级拖拽
       rowContainers.value.forEach((el, tIdx) => {
         if (el) {
           new Sortable(el, {
@@ -1287,28 +1314,25 @@ createApp({
       });
     }, { deep: true });
 
-    // 数据持久化
-    watch([rep, tables, portals, subMaxHeight], () => {
+    // 数据持久化（自动存储 branding 包含电话）
+    watch([branding, rep, tables, portals, subMaxHeight], () => {
+      localStorage.setItem('ico_branding', JSON.stringify(branding.value));
       localStorage.setItem('ico_rep', JSON.stringify(rep.value));
       localStorage.setItem('ico_tables', JSON.stringify(tables.value));
       localStorage.setItem('ico_portals', JSON.stringify(portals.value));
       localStorage.setItem('ico_submax', subMaxHeight.value);
     }, { deep: true });
 
-    // 智能 Subheader 添加
     const addSubheaderSmart = (table) => {
       const hasSub = table.items.some(i => i.isSubheader);
       const newSub = { id: 'item_' + (idSeed++), isSubheader: true, name: "NEW CATEGORY", hidden: false };
       if (!hasSub) {
-        // 无分类表：智能置顶
         table.items.unshift(newSub);
       } else {
-        // 已有分类表：追加在末尾
         table.items.push(newSub);
       }
     };
 
-    // 新加大表格
     const addNewTable = () => {
       tables.value.push({
         id: 'tbl_' + (idSeed++),
@@ -1325,7 +1349,6 @@ createApp({
       }
     };
 
-    // 顶部重置
     const confirmReset = () => {
       if (confirm("Reset all settings and tables to default? All local customizations will be cleared.")) {
         localStorage.clear();
@@ -1337,10 +1360,16 @@ createApp({
     const loadPreset = (key) => {
       currentPreset.value = key;
       if (key === 'edward') {
+        branding.value = JSON.parse(JSON.stringify(defaultBranding));
         rep.value = JSON.parse(JSON.stringify(defaultEdwardRep));
         tables.value = ensureIds(JSON.parse(JSON.stringify(defaultEdwardTables)));
         portals.value = JSON.parse(JSON.stringify(defaultPortals));
       } else {
+        branding.value = {
+          labName: "Ruyi Dental Lab",
+          slogan: "Precision Prosthetics & Comprehensive Digital Solutions",
+          labPhone: "(866)-779-3210"
+        };
         rep.value = JSON.parse(JSON.stringify(maxRep));
         tables.value = ensureIds(JSON.parse(JSON.stringify(maxTables)));
         portals.value = JSON.parse(JSON.stringify(defaultPortals));
@@ -1365,6 +1394,11 @@ createApp({
       }, 2500);
     };
 
+    // 格式化 tel: 链接，过滤括号破折号空格
+    const cleanPhone = (phone) => {
+      return phone ? phone.replace(/[^0-9+]/g, '') : '';
+    };
+
     const formatPortalEndpoint = (text) => {
       if (!text) return '';
       let res = text.replace(/557642/g, '<strong>557642</strong>');
@@ -1372,7 +1406,7 @@ createApp({
       return res;
     };
 
-    // 虚拟分页流水线 (自动过滤隐藏行 hidden === true)
+    // 虚拟分页流水线
     const paginatedPages = computed(() => {
       const pages = [];
       let currentPage = { fragments: [] };
@@ -1401,28 +1435,19 @@ createApp({
           let maxAllowed = (pageIndex === 0) ? P1_MAX_HEIGHT : subMaxHeight.value;
 
           const forceBreak = item.breakBefore === true;
-          // 当前页是否已经放置了内容（包含之前的表格或当前表格的前置行）
           const pageHasContent = currentPage.fragments.length > 0 || currentFragment.items.length > 0;
-          
-          // 溢出判定：自然高度超出
           const heightOverflow = (currentHeight + headerCost + itemCost > maxAllowed) && (currentFragment.items.length > 0);
 
-          // ★ 核心修复：只要设置了切页且当前页有内容，或者自然高度溢出，立即换页
           if ((forceBreak && pageHasContent) || heightOverflow) {
-            // 如果当前表格片段已有内容，存入当前页
             if (currentFragment.items.length > 0) {
               currentPage.fragments.push(currentFragment);
             }
             
-            // 开启新页面
             currentPage = { fragments: [] };
             pages.push(currentPage);
             pageIndex++;
             currentHeight = 0;
 
-            // 跨页后重新开启片段：
-            // 如果本表格之前从未渲染过任何行，跨页后它依然是该表的首发（显示表头）
-            // 如果之前已经有一部分在上一页，跨页后无缝续接（隐藏表头）
             currentFragment = { 
               tableName: table.name, 
               isFirstPart: isFirstPartOfTable && currentFragment.items.length === 0, 
@@ -1448,10 +1473,10 @@ createApp({
     const printPDF = () => { window.print(); };
 
     return {
-      rep, portals, tables, currentPreset, subMaxHeight, activeItemId,
+      branding, rep, portals, tables, currentPreset, subMaxHeight, activeItemId,
       tablesContainer, setRowContainer,
       loadPreset, confirmReset, addItem, addSubheaderSmart, addNewTable, deleteTable,
-      formatPortalEndpoint, paginatedPages, printPDF, locateItemInPanel
+      cleanPhone, formatPortalEndpoint, paginatedPages, printPDF, locateItemInPanel
     };
   }
 }).mount('#app');
