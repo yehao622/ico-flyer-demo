@@ -844,232 +844,234 @@
       </div>
     </div>
 
-    <div class="sidebar-content">
-      <!-- 模板切换 -->
-      <div class="panel-box">
-        <div class="panel-title">Template Presets</div>
-        <div class="preset-btns">
-          <button class="btn-preset" :class="{active: currentPreset === 'edward'}" @click="loadPreset('edward')">Edward</button>
-          <button class="btn-preset" :class="{active: currentPreset === 'max'}" @click="loadPreset('max')">Max Yan</button>
-        </div>
-      </div>
-
-      <!-- ★ Lab / Service Center Branding 面板（支持动态修改 Lab 名称、Slogan 与 Lab Service 电话） -->
-      <div class="panel-box">
-        <div class="panel-title">Lab / Service Center Title</div>
-        <div class="form-group">
-          <label>Organization / Parent Group (Fixed)</label>
-          <input type="text" class="form-control" value="ICO Dental Group" disabled style="opacity: 0.65; cursor: not-allowed;">
-        </div>
-        <div class="form-group">
-          <label>Lab / Service Center Name</label>
-          <input type="text" class="form-control" v-model="branding.labName" placeholder="e.g. Crystal Smile Lab">
-        </div>
-        <div class="form-group">
-          <label>Brand Slogan / Tagline</label>
-          <input type="text" class="form-control" v-model="branding.slogan" placeholder="e.g. Your Trusted Partner in Digital Dental Solutions">
-        </div>
-        <div class="form-group">
-          <label>Lab Service Hotline / Phone</label>
-          <input type="text" class="form-control" v-model="branding.labPhone" placeholder="e.g. (866)-779-3210">
-        </div>
-      </div>
-
-      <!-- 高度容差滑块 -->
-      <div class="panel-box">
-        <div class="panel-title">
-          <span>Safety Margin Height</span>
-          <span style="color:#38bdf8">{{ subMaxHeight }}px</span>
-        </div>
-        <input type="range" min="900" max="1000" step="5" v-model.number="subMaxHeight" style="width:100%; cursor:pointer;">
-        <div style="font-size:11px; color:#94a3b8; margin-top:4px;">Drag left to break earlier, right to pack more rows.</div>
-      </div>
-
-      <!-- 名片信息 -->
-      <div class="panel-box">
-        <div class="panel-title">Rep Info & Banner</div>
-        <div class="form-group">
-          <label>Sales Rep Name</label>
-          <input type="text" class="form-control" v-model="rep.name">
-        </div>
-        <div class="form-group">
-          <label>Phone Number</label>
-          <input type="text" class="form-control" v-model="rep.phone">
-        </div>
-        <div class="form-group">
-          <label>Direct Email</label>
-          <input type="text" class="form-control" v-model="rep.email">
-        </div>
-        <div class="form-group">
-          <label>Promo Banner</label>
-          <input type="text" class="form-control" v-model="rep.promo">
-        </div>
-      </div>
-
-      <!-- Portal 编辑（不可拖拽，保持锁定） -->
-      <div class="panel-box">
-        <div class="panel-title">Scanner Portal Editor</div>
-        <div v-for="(pItem, pIdx) in portals" :key="pIdx" class="row-edit-grid" style="grid-template-columns: 100px 1fr 28px;">
-          <input type="text" class="form-control" style="font-size:11.5px;" v-model="pItem.portal">
-          <input type="text" class="form-control" style="font-size:11.5px;" v-model="pItem.endpoint">
-          <button class="btn-toggle-vis" :class="pItem.hidden ? 'is-hidden' : 'is-shown'" @click="pItem.hidden = !pItem.hidden" :title="pItem.hidden ? 'Click to show portal' : 'Click to hide portal'">
-            {{ pItem.hidden ? 'Hide' : 'Shown' }}
-          </button>
-        </div>
-        <button class="btn-add-row" @click="portals.push({ portal: 'New Portal', endpoint: 'email@example.com' })">+ Add Scanner Connection</button>
-      </div>
-
-      <!-- 产品目录编辑器 -->
-      <div class="panel-box">
-        <div class="panel-title">Product Catalog Editor</div>
-        
-        <div ref="tablesContainer">
-          <div v-for="(table, tIndex) in tables" :key="table.id || tIndex" class="table-editor-item" :data-id="table.id">
-            
-            <div class="table-header-bar">
-              <div style="display:flex; align-items:center; gap:6px; flex:1;">
-                <span class="table-drag-handle" title="Drag to reorder table">⋮⋮</span>
-                <input type="text" class="form-control" style="font-size:12px; font-weight:700; color:#38bdf8; padding:3px 6px; height:26px;" v-model="table.name">
-              </div>
-              <button v-if="tables.length > 1" class="btn-reset-top" style="padding:2px 6px; font-size:10px;" @click="deleteTable(tIndex)" title="Delete this entire table">Delete Table</button>
-            </div>
-
-            <div :ref="el => setRowContainer(el, tIndex)">
-              <div v-for="(item, iIndex) in table.items" :key="item.id" :id="'panel-item-' + item.id" :data-id="item.id" :class="{'row-hidden': item.hidden === true}">
-                <div class="row-edit-grid">
-                  <span class="row-drag-handle" title="Drag to reorder row">⋮⋮</span>
-                  
-                  <input type="text" class="form-control" style="font-size:11.5px;" v-model="item.name" :class="{'highlight-focus': activeItemId === item.id}">
-                  
-                  <input type="text" class="form-control" style="font-size:11.5px;" v-model="item.price" v-if="!item.isSubheader" :class="{'highlight-focus': activeItemId === item.id}">
-                  <div style="text-align:center; color:#fbbf24; font-size:10px; font-weight:700;" v-else>SUB</div>
-                  
-                  <button class="btn-break" :class="{active: item.breakBefore}" @click="item.breakBefore = !item.breakBefore" title="Click to force page break before this item">
-                    ✂
-                  </button>
-                  
-                  <button class="btn-toggle-vis" :class="item.hidden ? 'is-hidden' : 'is-shown'" @click="item.hidden = !item.hidden" :title="item.hidden ? 'Click to show item' : 'Click to hide item'">
-                    {{ item.hidden ? 'Hide' : 'Shown' }}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div style="display:flex; gap:6px;">
-              <button class="btn-add-row" @click="addItem(table)">+ Add Row</button>
-              <button class="btn-add-row" style="color:#fbbf24;" @click="addSubheaderSmart(table)">+ Subheader</button>
-            </div>
+    <template v-if="isAuthenticated">
+      <div class="sidebar-content">
+        <!-- 模板切换 -->
+        <div class="panel-box">
+          <div class="panel-title">Template Presets</div>
+          <div class="preset-btns">
+            <button class="btn-preset" :class="{active: currentPreset === 'edward'}" @click="loadPreset('edward')">Edward</button>
+            <button class="btn-preset" :class="{active: currentPreset === 'max'}" @click="loadPreset('max')">Max Yan</button>
           </div>
         </div>
 
-        <button class="btn-add-table" @click="addNewTable">+ Add New Table / Category</button>
-      </div>
+        <!-- ★ Lab / Service Center Branding 面板（支持动态修改 Lab 名称、Slogan 与 Lab Service 电话） -->
+        <div class="panel-box">
+          <div class="panel-title">Lab / Service Center Title</div>
+          <div class="form-group">
+            <label>Organization / Parent Group (Fixed)</label>
+            <input type="text" class="form-control" value="ICO Dental Group" disabled style="opacity: 0.65; cursor: not-allowed;">
+          </div>
+          <div class="form-group">
+            <label>Lab / Service Center Name</label>
+            <input type="text" class="form-control" v-model="branding.labName" placeholder="e.g. Crystal Smile Lab">
+          </div>
+          <div class="form-group">
+            <label>Brand Slogan / Tagline</label>
+            <input type="text" class="form-control" v-model="branding.slogan" placeholder="e.g. Your Trusted Partner in Digital Dental Solutions">
+          </div>
+          <div class="form-group">
+            <label>Lab Service Hotline / Phone</label>
+            <input type="text" class="form-control" v-model="branding.labPhone" placeholder="e.g. (866)-779-3210">
+          </div>
+        </div>
 
-    </div>
-  </aside>
+        <!-- 高度容差滑块 -->
+        <div class="panel-box">
+          <div class="panel-title">
+            <span>Safety Margin Height</span>
+            <span style="color:#38bdf8">{{ subMaxHeight }}px</span>
+          </div>
+          <input type="range" min="900" max="1000" step="5" v-model.number="subMaxHeight" style="width:100%; cursor:pointer;">
+          <div style="font-size:11px; color:#94a3b8; margin-top:4px;">Drag left to break earlier, right to pack more rows.</div>
+        </div>
 
-  <!-- 右侧实时预览区 -->
-  <main class="preview-stage">
-    <div v-for="(page, pIndex) in paginatedPages" :key="pIndex" class="flyer-page">
-      <div class="content-layer">
-        
-        <!-- 第 1 页 Header -->
-        <header v-if="pIndex === 0" class="header-section">
-          <div class="brand-col">
-            <div>
-              <h1>ICO Dental Group</h1>
-              <h2>{{ branding.labName }}</h2>
-              <p class="slogan">{{ branding.slogan }}</p>
-            </div>
-            
-            <div>
-              <div class="contact-card-grid">
-                <div class="contact-item">
-                  <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-                  <span>{{ rep.name }}: <a :href="'tel:' + rep.phone"><strong>{{ rep.phone }}</strong></a></span>
+        <!-- 名片信息 -->
+        <div class="panel-box">
+          <div class="panel-title">Rep Info & Banner</div>
+          <div class="form-group">
+            <label>Sales Rep Name</label>
+            <input type="text" class="form-control" v-model="rep.name">
+          </div>
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input type="text" class="form-control" v-model="rep.phone">
+          </div>
+          <div class="form-group">
+            <label>Direct Email</label>
+            <input type="text" class="form-control" v-model="rep.email">
+          </div>
+          <div class="form-group">
+            <label>Promo Banner</label>
+            <input type="text" class="form-control" v-model="rep.promo">
+          </div>
+        </div>
+
+        <!-- Portal 编辑（不可拖拽，保持锁定） -->
+        <div class="panel-box">
+          <div class="panel-title">Scanner Portal Editor</div>
+          <div v-for="(pItem, pIdx) in portals" :key="pIdx" class="row-edit-grid" style="grid-template-columns: 100px 1fr 28px;">
+            <input type="text" class="form-control" style="font-size:11.5px;" v-model="pItem.portal">
+            <input type="text" class="form-control" style="font-size:11.5px;" v-model="pItem.endpoint">
+            <button class="btn-toggle-vis" :class="pItem.hidden ? 'is-hidden' : 'is-shown'" @click="pItem.hidden = !pItem.hidden" :title="pItem.hidden ? 'Click to show portal' : 'Click to hide portal'">
+              {{ pItem.hidden ? 'Hide' : 'Shown' }}
+            </button>
+          </div>
+          <button class="btn-add-row" @click="portals.push({ portal: 'New Portal', endpoint: 'email@example.com' })">+ Add Scanner Connection</button>
+        </div>
+
+        <!-- 产品目录编辑器 -->
+        <div class="panel-box">
+          <div class="panel-title">Product Catalog Editor</div>
+          
+          <div ref="tablesContainer">
+            <div v-for="(table, tIndex) in tables" :key="table.id || tIndex" class="table-editor-item" :data-id="table.id">
+              
+              <div class="table-header-bar">
+                <div style="display:flex; align-items:center; gap:6px; flex:1;">
+                  <span class="table-drag-handle" title="Drag to reorder table">⋮⋮</span>
+                  <input type="text" class="form-control" style="font-size:12px; font-weight:700; color:#38bdf8; padding:3px 6px; height:26px;" v-model="table.name">
                 </div>
-                <!-- ★ 动态 Lab Service 电话 -->
-                <div class="contact-item">
-                  <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-                  <span>Lab Service: <a :href="'tel:' + cleanPhone(branding.labPhone)"><strong>{{ branding.labPhone }}</strong></a></span>
-                </div>
-                <div class="contact-item">
-                  <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-                  <span><a :href="'mailto:' + rep.email"><strong>{{ rep.email }}</strong></a></span>
+                <button v-if="tables.length > 1" class="btn-reset-top" style="padding:2px 6px; font-size:10px;" @click="deleteTable(tIndex)" title="Delete this entire table">Delete Table</button>
+              </div>
+
+              <div :ref="el => setRowContainer(el, tIndex)">
+                <div v-for="(item, iIndex) in table.items" :key="item.id" :id="'panel-item-' + item.id" :data-id="item.id" :class="{'row-hidden': item.hidden === true}">
+                  <div class="row-edit-grid">
+                    <span class="row-drag-handle" title="Drag to reorder row">⋮⋮</span>
+                    
+                    <input type="text" class="form-control" style="font-size:11.5px;" v-model="item.name" :class="{'highlight-focus': activeItemId === item.id}">
+                    
+                    <input type="text" class="form-control" style="font-size:11.5px;" v-model="item.price" v-if="!item.isSubheader" :class="{'highlight-focus': activeItemId === item.id}">
+                    <div style="text-align:center; color:#fbbf24; font-size:10px; font-weight:700;" v-else>SUB</div>
+                    
+                    <button class="btn-break" :class="{active: item.breakBefore}" @click="item.breakBefore = !item.breakBefore" title="Click to force page break before this item">
+                      ✂
+                    </button>
+                    
+                    <button class="btn-toggle-vis" :class="item.hidden ? 'is-hidden' : 'is-shown'" @click="item.hidden = !item.hidden" :title="item.hidden ? 'Click to show item' : 'Click to hide item'">
+                      {{ item.hidden ? 'Hide' : 'Shown' }}
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div v-if="rep.promo" class="promo-banner">★ {{ rep.promo }}</div>
+
+              <div style="display:flex; gap:6px;">
+                <button class="btn-add-row" @click="addItem(table)">+ Add Row</button>
+                <button class="btn-add-row" style="color:#fbbf24;" @click="addSubheaderSmart(table)">+ Subheader</button>
+              </div>
             </div>
           </div>
 
-          <div class="logo-col">
-            <img src="squirrel.png" alt="ICO Mascot Logo" class="squirrel-logo">
-            <div class="year-banner">2026</div>
-            <div class="price-list-badge">Detailed Price List</div>
-          </div>
-        </header>
+          <button class="btn-add-table" @click="addNewTable">+ Add New Table / Category</button>
+        </div>
 
-        <!-- 第 2/3/4 页 Subheader (★ Lab 名称与电话号码全自动同步) -->
-        <header v-else class="header-subpage">
-          <div class="sub-brand">ICO Dental Group • {{ branding.labName || 'Price List' }}</div>
-          <div class="sub-contact">
-            Direct: <a :href="'tel:' + rep.phone">{{ rep.phone }}</a> | Lab: <a :href="'tel:' + cleanPhone(branding.labPhone)">{{ branding.labPhone }}</a>
-          </div>
-        </header>
+      </div>
+    </aside>
 
-        <!-- 第 1 页 Portal 表格 -->
-        <section v-if="pIndex === 0" class="table-container portal-container">
-          <div class="portal-header">
-            <span>LAB SCANNER PORTAL</span>
-            <span style="font-size: 10px; font-weight: normal; opacity: 0.9;">DIGITAL CONNECTIONS</span>
-          </div>
-          <table class="custom-table portal-table">
-            <tbody>
-              <template v-for="(pItem, pIdx) in portals" :key="pIdx">
-                <tr v-if="!pItem.hidden">
-                  <td class="col-portal">{{ pItem.portal }}</td>
-                  <td class="col-endpoint" v-html="formatPortalEndpoint(pItem.endpoint)"></td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
-        </section>
+    <!-- 右侧实时预览区 -->
+    <main class="preview-stage">
+      <div v-for="(page, pIndex) in paginatedPages" :key="pIndex" class="flyer-page">
+        <div class="content-layer">
+          
+          <!-- 第 1 页 Header -->
+          <header v-if="pIndex === 0" class="header-section">
+            <div class="brand-col">
+              <div>
+                <h1>ICO Dental Group</h1>
+                <h2>{{ branding.labName }}</h2>
+                <p class="slogan">{{ branding.slogan }}</p>
+              </div>
+              
+              <div>
+                <div class="contact-card-grid">
+                  <div class="contact-item">
+                    <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                    <span>{{ rep.name }}: <a :href="'tel:' + rep.phone"><strong>{{ rep.phone }}</strong></a></span>
+                  </div>
+                  <!-- ★ 动态 Lab Service 电话 -->
+                  <div class="contact-item">
+                    <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                    <span>Lab Service: <a :href="'tel:' + cleanPhone(branding.labPhone)"><strong>{{ branding.labPhone }}</strong></a></span>
+                  </div>
+                  <div class="contact-item">
+                    <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                    <span><a :href="'mailto:' + rep.email"><strong>{{ rep.email }}</strong></a></span>
+                  </div>
+                </div>
+                <div v-if="rep.promo" class="promo-banner">★ {{ rep.promo }}</div>
+              </div>
+            </div>
 
-        <!-- 动态表格片段 -->
-        <section v-for="(frag, fIndex) in page.fragments" :key="fIndex" class="table-container">
-          <div v-if="frag.isFirstPart" class="product-header">
-            <span>{{ frag.tableName }}</span>
-            <span>CURRENT PRICE</span>
-          </div>
+            <div class="logo-col">
+              <img src="squirrel.png" alt="ICO Mascot Logo" class="squirrel-logo">
+              <div class="year-banner">2026</div>
+              <div class="price-list-badge">Detailed Price List</div>
+            </div>
+          </header>
 
-          <table class="custom-table product-table">
-            <tbody>
-              <tr v-for="(row, rIndex) in frag.items" :key="row.id || rIndex" @click="locateItemInPanel(row.id)" title="Click to edit this item in left panel">
-                <td v-if="row.isSubheader" colspan="2" class="section-subheader">{{ row.name }}</td>
-                <template v-else>
-                  <td class="col-name" :class="{indent: row.isIndent}">{{ row.name }}</td>
-                  <td class="col-price">
-                    {{ row.price }}
-                    <span v-if="row.note" class="price-note">{{ row.note }}</span>
-                  </td>
+          <!-- 第 2/3/4 页 Subheader (★ Lab 名称与电话号码全自动同步) -->
+          <header v-else class="header-subpage">
+            <div class="sub-brand">ICO Dental Group • {{ branding.labName || 'Price List' }}</div>
+            <div class="sub-contact">
+              Direct: <a :href="'tel:' + rep.phone">{{ rep.phone }}</a> | Lab: <a :href="'tel:' + cleanPhone(branding.labPhone)">{{ branding.labPhone }}</a>
+            </div>
+          </header>
+
+          <!-- 第 1 页 Portal 表格 -->
+          <section v-if="pIndex === 0" class="table-container portal-container">
+            <div class="portal-header">
+              <span>LAB SCANNER PORTAL</span>
+              <span style="font-size: 10px; font-weight: normal; opacity: 0.9;">DIGITAL CONNECTIONS</span>
+            </div>
+            <table class="custom-table portal-table">
+              <tbody>
+                <template v-for="(pItem, pIdx) in portals" :key="pIdx">
+                  <tr v-if="!pItem.hidden">
+                    <td class="col-portal">{{ pItem.portal }}</td>
+                    <td class="col-endpoint" v-html="formatPortalEndpoint(pItem.endpoint)"></td>
+                  </tr>
                 </template>
-              </tr>
-            </tbody>
-          </table>
-        </section>
+              </tbody>
+            </table>
+          </section>
 
-      </div>
+          <!-- 动态表格片段 -->
+          <section v-for="(frag, fIndex) in page.fragments" :key="fIndex" class="table-container">
+            <div v-if="frag.isFirstPart" class="product-header">
+              <span>{{ frag.tableName }}</span>
+              <span>CURRENT PRICE</span>
+            </div>
 
-      <footer class="footer-area">
-        <div class="art-footer-group">
-          <div class="art-footer-line">High Quality</div>
-          <div class="art-footer-line">Precision</div>
-          <div class="art-footer-line">On Time</div>
-          <div class="art-footer-page">{{ pIndex + 1 }} / {{ paginatedPages.length }}</div>
+            <table class="custom-table product-table">
+              <tbody>
+                <tr v-for="(row, rIndex) in frag.items" :key="row.id || rIndex" @click="locateItemInPanel(row.id)" title="Click to edit this item in left panel">
+                  <td v-if="row.isSubheader" colspan="2" class="section-subheader">{{ row.name }}</td>
+                  <template v-else>
+                    <td class="col-name" :class="{indent: row.isIndent}">{{ row.name }}</td>
+                    <td class="col-price">
+                      {{ row.price }}
+                      <span v-if="row.note" class="price-note">{{ row.note }}</span>
+                    </td>
+                  </template>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
         </div>
-      </footer>
-    </div>
-  </main>
+
+        <footer class="footer-area">
+          <div class="art-footer-group">
+            <div class="art-footer-line">High Quality</div>
+            <div class="art-footer-line">Precision</div>
+            <div class="art-footer-line">On Time</div>
+            <div class="art-footer-page">{{ pIndex + 1 }} / {{ paginatedPages.length }}</div>
+          </div>
+        </footer>
+      </div>
+    </main>
+  </template>
 </div>
 
 <script>
@@ -1106,10 +1108,10 @@ createApp({
         }
         
         // 解密成功：载入真实数据
-        const data = JSON.parse(decryptedText);
-        window._DECRYPTED_PAYLOAD = data; // 存入内存供后续切换模板使用
-        
-        tables.value = ensureIds(data[currentPreset.value] || data.edward);
+        decryptedStore = JSON.parse(decryptedText);
+        // 优先读取用户之前编辑过的本地修改，若无则使用解密出来的默认表
+        const saved = JSON.parse(localStorage.getItem('ico_tables'));
+        tables.value = ensureIds(saved && saved.length > 0 ? saved : (decryptedStore[currentPreset.value] || decryptedStore.edward));
         isAuthenticated.value = true;
         sessionStorage.setItem('ico_auth_passed', 'true');
         sessionStorage.setItem('ico_unlocked_data', decryptedText);
@@ -1148,7 +1150,10 @@ createApp({
     const branding = ref(Object.assign({}, defaultBranding, savedBranding));
 
     const rep = ref(JSON.parse(localStorage.getItem('ico_rep')) || defaultEdwardRep);
-    const rawSavedTables = JSON.parse(localStorage.getItem('ico_tables')) || (decryptedStore ? decryptedStore.edward : []);
+    let initialTables = [];
+    if (isAuthenticated.value) {
+      initialTables = JSON.parse(localStorage.getItem('ico_tables')) || (decryptedStore ? decryptedStore.edward : []);
+    }
     const tables = ref(ensureIds(rawSavedTables));
     const portals = ref(JSON.parse(localStorage.getItem('ico_portals')) || defaultPortals);
     const subMaxHeight = ref(Number(localStorage.getItem('ico_submax')) || 960);
