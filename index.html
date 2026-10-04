@@ -3,15 +3,98 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
   <title>ICO Dental Flyer Generator - Web App</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Montserrat:wght@600;700;800;900&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <!-- 引入轻量级 Vue 3 与无依赖原生拖拽库 SortableJS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
   <style>
+    /* ★ 极简网关弹窗与全屏模糊锁 */
+    .gateway-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      z-index: 99999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .gateway-card {
+      background: #1e293b;
+      border: 1px solid #38bdf8;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      border-radius: 12px;
+      padding: 32px 28px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+      color: #f8fafc;
+    }
+
+    .gateway-logo {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      color: #38bdf8;
+      margin-bottom: 6px;
+    }
+
+    .gateway-subtitle {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 22px;
+    }
+
+    .gateway-input {
+      width: 100%;
+      background: #0f172a;
+      border: 1.5px solid #334155;
+      color: #ffffff;
+      padding: 10px 14px;
+      font-size: 14px;
+      border-radius: 6px;
+      outline: none;
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+    }
+
+    .gateway-input:focus {
+      border-color: #38bdf8;
+    }
+
+    .gateway-btn {
+      width: 100%;
+      background: #0284c7;
+      color: #ffffff;
+      border: none;
+      padding: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .gateway-btn:hover {
+      background: #0369a1;
+    }
+
+    .gateway-error {
+      color: #f87171;
+      font-size: 12px;
+      margin-top: 10px;
+      min-height: 16px;
+    }
+
     @page {
       size: A4 portrait;
       margin: 0;
@@ -730,6 +813,27 @@
 <body>
 
 <div id="app">
+  <!-- ★ 极简密码网关拦截遮罩 (仅在未授权时渲染) -->
+  <div v-if="!isAuthenticated" class="gateway-overlay">
+    <div class="gateway-card">
+      <div class="gateway-logo">ICO Internal Gateway</div>
+      <div class="gateway-subtitle">Restricted Access • Please enter authorization token</div>
+      
+      <form @submit.prevent="verifyToken">
+        <input 
+          type="password" 
+          class="gateway-input" 
+          v-model="tokenInput" 
+          placeholder="Enter Passcode..." 
+          autofocus
+        >
+        <button type="submit" class="gateway-btn">Unlock Price Studio</button>
+      </form>
+
+      <div class="gateway-error">{{ authError }}</div>
+    </div>
+  </div>
+
   <!-- 左侧控制面板 -->
   <aside class="sidebar">
     <div class="sidebar-header">
@@ -973,271 +1077,54 @@ const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
 
 createApp({
   setup() {
+    // ==========================================
+    // 网关安全逻辑
+    // ==========================================
+    // 纯 JavaScript 版 SHA-256，无视 file:// 协议和环境限制，100% 兼容
+
+    const isAuthenticated = ref(sessionStorage.getItem('ico_auth_passed') === 'true');
+    const tokenInput = ref('');
+    const authError = ref('');
+
+    const ENCRYPTED_DATA = "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";
+
+    const verifyToken = () => {
+      authError.value = '';
+      const inputPass = tokenInput.value.trim();
+      if (!inputPass) {
+        authError.value = 'Please enter passcode.';
+        return;
+      }
+
+      try {
+        // 直接使用用户输入的密码解密
+        const bytes = CryptoJS.AES.decrypt(ENCRYPTED_DATA, inputPass);
+        const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+        
+        if (!decryptedText) {
+          throw new Error("Invalid password");
+        }
+        
+        // 解密成功：载入真实数据
+        const data = JSON.parse(decryptedText);
+        window._DECRYPTED_PAYLOAD = data; // 存入内存供后续切换模板使用
+        
+        tables.value = ensureIds(data[currentPreset.value] || data.edward);
+        isAuthenticated.value = true;
+        sessionStorage.setItem('ico_auth_passed', 'true');
+        sessionStorage.setItem('ico_unlocked_data', decryptedText);
+      } catch (e) {
+        authError.value = "Invalid passcode. Access denied.";
+        tokenInput.value = '';
+      }
+    };
+
     // 默认 Lab、Slogan 与专线电话
     const defaultBranding = {
       labName: "Crystal Smile Lab",
       slogan: "Your Trusted Partner in Digital Dental Solutions",
       labPhone: "(866)-779-3210"
     };
-
-    const defaultEdwardRep = {
-      name: "Edward Shan",
-      phone: "774-277-9053",
-      email: "edwardshan.crystalsmile@gmail.com",
-      promo: ""
-    };
-
-    const defaultEdwardTables = [
-      {
-        name: "CROWN & BRIDGE",
-        items: [
-          { name: "Zirconia Solid Crown", price: "$65" },
-          { name: "Zirconia HT Crown", price: "$65" },
-          { name: "Zirconia Crown (Multi-Layered)", price: "$70" },
-          { name: "Zirconia Maryland Bridge (1 Pontic + 2 Wings)", price: "$162" },
-          { name: "Zirconia Crown - Porcelain Layered (PFZ)", price: "$85" },
-          { name: "Full Metal Crown - Non Precious", price: "$50" },
-          { name: "PFM - Non Precious", price: "$55" },
-          { name: "PFM - Semi-precious(Crown Price + Weight * Metal Unit Price)", price: "$100-$200", note: "*(Subject to market rate)" },
-          { name: "E.max Crown", price: "$90" }
-        ]
-      },
-      {
-        name: "VENEER",
-        items: [
-          { name: "E.max Veneer", price: "$100" },
-          { name: "Zirconia Veneer", price: "$75" },
-          { name: "Ultra-thin Zirconia Veneer", price: "$200" },
-          { name: "Wax Mockup", price: "$20" },
-          { name: "Esthetic Wax Mockup", price: "$40" },
-          { name: "Esthetic Zirconia Veneer", price: "$225" },
-          { name: "Esthetic E.max Veneer", price: "$350" }
-        ]
-      },
-      {
-        name: "DENTURE",
-        items: [
-          { isSubheader: true, name: "1. ACRYLIC" },
-          { name: "Custom Tray", price: "$25" },
-          { name: "Base Plate & Occlusal Rim", price: "$25" },
-          { name: "Acrylic Denture (Full / Partial)", price: "$160 / $150" },
-          { isIndent: true, name: "• Includes - Teeth Wax Try in (Full / Partial)", price: "$80 / $75" },
-          { isIndent: true, name: "• Includes - Acrylic Processing (Full / Partial)", price: "$80 / $75" },
-          { name: "Acrylic Flipper - 1 to 3 Teeth in a row, One-step Finish Directly", price: "$99" },
-          { isSubheader: true, name: "2. FLEXIBLE PARTIAL" },
-          { name: "Custom Tray", price: "$25" },
-          { name: "Base Plate & Occlusal Rim", price: "$25" },
-          { name: "Valplast Partial", price: "$180" },
-          { isIndent: true, name: "• Includes - Teeth Wax Try In", price: "$75" },
-          { isIndent: true, name: "• Includes - Valplast Processing", price: "$105" },
-          { name: "Valplast Flipper - 1 to 3 Teeth in a row, One-step Finish Directly", price: "$120" },
-          { isSubheader: true, name: "3. METAL PARTIAL" },
-          { name: "Custom Tray", price: "$25" },
-          { name: "Base Plate & Occlusal Rim", price: "$25" },
-          { name: "CoCr Metal Partial + Acrylic (RPD)", price: "$270" },
-          { isIndent: true, name: "• Includes - Cocr Metal Framework", price: "$120" },
-          { isIndent: true, name: "• Includes - Teeth Wax Try In", price: "$75" },
-          { isIndent: true, name: "• Includes - Acrylic Processing", price: "$75" },
-          { isSubheader: true, name: "4. OVERDENTURE" },
-          { name: "Custom Tray", price: "$25" },
-          { name: "Base Plate & Occlusal Rim", price: "$25" },
-          { name: "Over Denture (Example: Single arch with 2 Implant Units)", price: "$800" },
-          { isIndent: true, name: "• Includes - Locator Abutment (Selected By Lab, Per Unit)", price: "$180 x 2" },
-          { isIndent: true, name: "• Includes - Locator Attachment (Selected By Lab, Per Unit)", price: "$120 x 2" },
-          { isIndent: true, name: "• Includes - Teeth Wax Try in", price: "$100" },
-          { isIndent: true, name: "• Includes - Acrylic Processing", price: "$100" }
-        ]
-      },
-      {
-        name: "MISCELLANEOUS",
-        items: [
-          { name: "Basic Repair", price: "$69" },
-          { name: "Reset Teeth (Per arch)", price: "$20" },
-          { name: "Acrylic Denture - Rebase / Hard Reline", price: "$85" },
-          { name: "Acrylic / Valplast Denture - Soft Reline", price: "$65" },
-          { name: "Bleaching Tray", price: "$50" },
-          { name: "Night Guard - Combo (Hard & Soft)", price: "$69" },
-          { name: "Sports Guard (Custom Color)", price: "$100" },
-          { name: "Snore Guard (Shark Fin)", price: "$270" },
-          { name: "Snoring Appliance With Connector Bar", price: "$170" },
-          { name: "Essix Retainer", price: "$50" },
-          { name: "Surcharge for One Additional Tooth", price: "$10" },
-          { name: "Hawley Retainer", price: "$85" },
-          { name: "Space Maintainer", price: "$50" }
-        ]
-      },
-      {
-        name: "IMPLANT (Custom Abutment Included)",
-        items: [
-          { name: "Zirconia Screwed Retained Implant Crown", price: "$285" },
-          { name: "PFM Screwed Retained Implant Crown", price: "$275" },
-          { name: "PFZ Screwed Retained Implant Crown", price: "$315" },
-          { name: "Zirconia Cementable Implant Crown", price: "$275" },
-          { name: "PFM Cementable Implant Crown", price: "$265" },
-          { name: "PFZ Cementable Implant Crown", price: "$305" },
-          { name: "Custom Scan Body", price: "Free" },
-          { name: "Surgical Guide without Sleeve", price: "$99" },
-          { name: "Surgical Guide with Sleeve", price: "$199" },
-          { name: "Surcharge for Additional Implant Site (Without Sleeve)", price: "$40" },
-          { name: "Surcharge for Additional Implant Site (With Sleeve)", price: "$80" }
-        ]
-      },
-      {
-        name: "All-On-X (One Arch Includes 10-12 Teeth, MUA abutments not included)",
-        items: [
-          { isSubheader: true, name: "SURGICAL PLANNING & PROVISIONAL" },
-          { name: "Radiographic Guide (Single Arch)", price: "$100" },
-          { name: "Edentulous Surgical Guide (Single Arch)", price: "$600" },
-          { name: "Standby Design", price: "$500" },
-          { name: "Full arch PMMA", price: "$600" },
-          { isSubheader: true, name: "Type I ：Ti-Base" },
-          { name: "All-on-4 / 6 Package", price: "$2490 / $2790" },
-          { isIndent: true, name: "• Includes - Full arch Zirconia", price: "$1,200" },
-          { isIndent: true, name: "• Includes - Full Arch Pink Porcelain on Zirconia", price: "$340" },
-          { isIndent: true, name: "• Includes - Process Fee", price: "$950 / $1250" },
-          { isSubheader: true, name: "Type II ：Ti-Bar" },
-          { name: "All-on-4 / 6 Package", price: "$3140 / $3440" },
-          { isIndent: true, name: "• Includes - Full arch Zirconia", price: "$1,200" },
-          { isIndent: true, name: "• Includes - Full Arch Pink Porcelain on Zirconia", price: "$340" },
-          { isIndent: true, name: "• Includes - Implant bar (4 implants)", price: "$1600 / $1900" },
-          { isSubheader: true, name: "Type III ：Ti-Malone Bridge" },
-          { name: "All-on-4 / 6 Package", price: "$5140 / $5440" },
-          { isIndent: true, name: "• Includes - Full arch Zirconia", price: "$1,200" },
-          { isIndent: true, name: "• Includes - Full Arch Pink Porcelain on Zirconia", price: "$340" },
-          { isIndent: true, name: "• Includes - Malone Implant bar (4 implants)", price: "$3600 / $3900" }
-        ]
-      }
-    ];
-
-    const maxRep = {
-      name: "Max Yan",
-      phone: "(508)-981-3740",
-      email: "max.yan@icodentalgroup.com",
-      promo: "Free pickup & delivery / 1st crown case free"
-    };
-
-    const maxTables = [
-      {
-        name: "CROWN & BRIDGE",
-        items: [
-          { isSubheader: true, name: "1. CERAMIC" },
-          { name: "Zirconia Solid Crown", price: "$85" },
-          { name: "Zirconia Veneer", price: "$95" },
-          { name: "Zirconia Crown (Multi-Layered)", price: "$105" },
-          { name: "Zirconia Crown-Porcelain Layered (PFZ)", price: "$120" },
-          { name: "Zirconia Maryland Bridge (1 Pontic + 2 Wings)", price: "$180" },
-          { name: "E.max Crown / Inlay / Onlay", price: "$100" },
-          { name: "E.max Veneer", price: "$110" },
-          { name: "E.max Non-prep Veneer", price: "$130" },
-          { isSubheader: true, name: "2. FULL METAL" },
-          { name: "Full Metal Crown / Inlay / Onlay - NP", price: "$60" },
-          { name: "Post & Core - NP", price: "$60" },
-          { name: "Post & Core - Add Opaque", price: "Free" },
-          { isSubheader: true, name: "3. PORCELAIN FUSED METAL" },
-          { name: "PFM - Non Precious", price: "$75" },
-          { name: "PFM - Semi Precious (Crown Price+Weight*Metal Unit Price)", price: "$100-$200", note: "*(Subject to market rate)" },
-          { name: "PFM Maryland Bridge (1 Pontic + 2 Wings)", price: "$150" }
-        ]
-      },
-      {
-        name: "IMPLANT",
-        items: [
-          { isSubheader: true, name: "1. CROWN & ABUTMENT" },
-          { name: "Screwed Retained Implant (Zirconia Crown/PFM Crown/PFZ Crown)", price: "$335/$325/$375" },
-          { isIndent: true, name: "• Includes - Titanium Custom Abutment", price: "$200" },
-          { isIndent: true, name: "• Includes - Zirconia Crown/PFM Crown/PFZ Crown", price: "$100/$90/$140" },
-          { isIndent: true, name: "• Includes - Analog", price: "$15" },
-          { isIndent: true, name: "• Includes - Soft Tissue", price: "$10" },
-          { isIndent: true, name: "• Includes - Cement Fee", price: "$10" },
-          { isIndent: true, name: "• Includes - Custom Scan Body", price: "Free" },
-          { isSubheader: true, name: "2. MISCELLANEOUS" },
-          { name: "Surgical Guide (Treatment Plan+Print+1 Implant Site) without Sleeve", price: "$169" },
-          { name: "Surgical Guide (Treatment Plan+Print+1 Implant Site) with Sleeve", price: "$199" },
-          { name: "Surcharge for 1 Additional Sleeve (Within the Same Arch)", price: "$80" },
-          { name: "Surcharge for 1 More Implant Site (Within the Same Arch)", price: "$40" }
-        ]
-      },
-      {
-        name: "DENTURE",
-        items: [
-          { isSubheader: true, name: "1. ACRYLIC" },
-          { name: "Custom Tray", price: "$25" },
-          { name: "Base Plate & Occlusal Rim", price: "$25" },
-          { name: "Acrylic Denture (Full/Partial)", price: "$200/$180" },
-          { isIndent: true, name: "• Includes - Teeth Wax Try in (Full/Partial)", price: "$100/$90" },
-          { isIndent: true, name: "• Includes - Acrylic Processing (Full/Partial)", price: "$100/$90" },
-          { name: "Acrylic Flipper - 1 to 3 Teeth in One Row, One-step Finish Directly", price: "$99" },
-          { isSubheader: true, name: "2. METAL PARTIAL" },
-          { name: "Custom Tray", price: "$25" },
-          { name: "Base Plate & Occlusal Rim", price: "$25" },
-          { name: "CoCr Metal Partial + Acrylic (RPD)", price: "$300" },
-          { isIndent: true, name: "• Includes - Cocr Metal Framework", price: "$120" },
-          { isIndent: true, name: "• Includes - Teeth Wax Try In", price: "$90" },
-          { isIndent: true, name: "• Includes - Acrylic Processing", price: "$90" },
-          { isSubheader: true, name: "3. FLEXIBLE PARTIAL" },
-          { name: "Custom Tray", price: "$25" },
-          { name: "Base Plate & Occlusal Rim", price: "$25" },
-          { name: "Valplast Partial", price: "$240" },
-          { isIndent: true, name: "• Includes - Teeth Wax Try In", price: "$100" },
-          { isIndent: true, name: "• Includes - Valplast Processing", price: "$140" },
-          { name: "Valplast Flipper - 1 to 3 Teeth in One Row, One-step Finish Directly", price: "$120" },
-          { isSubheader: true, name: "4. OVERDENTURE" },
-          { name: "Custom Tray", price: "$25" },
-          { name: "Base Plate & Occlusal Rim", price: "$25" },
-          { name: "Overdenture (X4)", price: "$1,400" },
-          { isIndent: true, name: "• Includes - Teeth Wax Try in", price: "$100" },
-          { isIndent: true, name: "• Includes - Acrylic Processing", price: "$100" },
-          { name: "Locator Abutment", price: "$180" },
-          { name: "Locator Attachment", price: "$120" },
-          { isSubheader: true, name: "5. REPAIR" },
-          { name: "Repair Basic Cost", price: "$89" },
-          { name: "Reset Teeth (Per arch)", price: "$40" },
-          { name: "Surcharge for Ivoclar 5-layered Resin Teeth (Per arch)", price: "$100" },
-          { name: "Acrylic Denture - Rebase / Hard Reline", price: "$120" },
-          { name: "Acrylic / Valplast Denture - Soft Reline", price: "$100" },
-          { name: "Extra Rush Fee if Needed (Within 5 Workdays)", price: "$50 / 100" }
-        ]
-      },
-      {
-        name: "MISCELLANEOUS",
-        items: [
-          { name: "Bleaching Tray", price: "$70" },
-          { name: "Night Guard - Hard (Milled or Pressed)", price: "$79" },
-          { name: "Night Guard - Soft (Milled or Pressed)", price: "$79" },
-          { name: "Night Guard - Combo (Hard & Soft, Milled or Pressed)", price: "$89" },
-          { name: "Sports Guard (One or Two colors)", price: "$100" },
-          { name: "Sports Guard (Custom Color)", price: "$120" },
-          { name: "Snore Guard (Shark Fin)", price: "$300" },
-          { name: "Snoring Appliance With Connector Bar", price: "$200" },
-          { name: "Essix Retainer", price: "$70" },
-          { name: "Surcharge for One Additional Tooth", price: "$20" },
-          { name: "Hawley Retainer", price: "$100" },
-          { name: "Space Maintainer", price: "$70" }
-        ]
-      },
-      {
-        name: "Personal Protective Equipment (PPE)",
-        items: [
-          { name: "ASTM Level3 Earloop Face Mask, Blue Color, 40BX/CS", price: "$160" },
-          { name: "ASTM Level3 Earloop Face Mask, BLK Color, 40BX/CS", price: "$160" },
-          { name: "ASTM Level3 Face Mask With Shield, 12BX/CS, 600Pcs/CS", price: "$120" },
-          { name: "Aoshang KN95, 1,000Pcs/CS", price: "$190" },
-          { name: "Aoshang SMS Disposable Lab Coat Hip Length Universal Size, 40GSM, 50Pcs/CS", price: "$120" },
-          { name: "Aoshang Isolation Gown, 40GSM PP, Full Length Universal Size, 100Pcs/CS", price: "$120" },
-          { name: "Goggles 120Unit/CS", price: "$180" }
-        ]
-      }
-    ];
-
-    const defaultPortals = [
-      { portal: "iTero", endpoint: "Our Lab ID: 557642 or ma.icodental.lab@gmail.com" },
-      { portal: "Medit", endpoint: "ma.icodental.lab@gmail.com" },
-      { portal: "3 shape (Trios)", endpoint: "service.crystalsmile@gmail.com" },
-      { portal: "Shining 3D", endpoint: "ma.icodental.lab@gmail.com" },
-      { portal: "CS Connect", endpoint: "jessica.xu@icodentalgroup.com" },
-      { portal: "Dentsply Sirona (DS Core)", endpoint: "ma.icodental.lab@gmail.com" },
-      { portal: "Dexis Connect", endpoint: "ma.icodental.lab@gmail.com" }
-    ];
 
     let idSeed = 2000;
     const ensureIds = (tableList) => {
@@ -1261,7 +1148,7 @@ createApp({
     const branding = ref(Object.assign({}, defaultBranding, savedBranding));
 
     const rep = ref(JSON.parse(localStorage.getItem('ico_rep')) || defaultEdwardRep);
-    const rawSavedTables = JSON.parse(localStorage.getItem('ico_tables')) || defaultEdwardTables;
+    const rawSavedTables = JSON.parse(localStorage.getItem('ico_tables')) || (decryptedStore ? decryptedStore.edward : []);
     const tables = ref(ensureIds(rawSavedTables));
     const portals = ref(JSON.parse(localStorage.getItem('ico_portals')) || defaultPortals);
     const subMaxHeight = ref(Number(localStorage.getItem('ico_submax')) || 960);
@@ -1473,7 +1360,7 @@ createApp({
     const printPDF = () => { window.print(); };
 
     return {
-      branding, rep, portals, tables, currentPreset, subMaxHeight, activeItemId,
+      isAuthenticated, tokenInput, authError, verifyToken, branding, rep, portals, tables, currentPreset, subMaxHeight, activeItemId,
       tablesContainer, setRowContainer,
       loadPreset, confirmReset, addItem, addSubheaderSmart, addNewTable, deleteTable,
       cleanPhone, formatPortalEndpoint, paginatedPages, printPDF, locateItemInPanel
