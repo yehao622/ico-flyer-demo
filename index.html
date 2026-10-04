@@ -8,13 +8,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Montserrat:wght@600;700;800;900&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <!-- 引入轻量级 Vue 3 与无依赖原生拖拽库 SortableJS -->
+  <!-- 引入 CryptoJS, Vue 3, SortableJS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
   <style>
-    /* ★ 极简网关弹窗与全屏模糊锁 */
     .gateway-overlay {
       position: fixed;
       inset: 0;
@@ -120,7 +119,6 @@
       overflow: hidden;
     }
 
-    /* 左侧控制面板 */
     .sidebar {
       width: 490px;
       min-width: 490px;
@@ -244,7 +242,6 @@
       border-color: #38bdf8;
     }
 
-    /* 拖拽手柄与卡片容器 */
     .table-editor-item {
       background: #1b2636;
       border: 1px solid #2d3f56;
@@ -294,7 +291,6 @@
       cursor: grabbing;
     }
 
-    /* 隐藏状态样式与开关按钮 */
     .row-hidden {
       opacity: 0.45;
     }
@@ -396,7 +392,6 @@
       border-color: #38bdf8;
     }
 
-    /* 右侧实时预览区 */
     .preview-stage {
       flex: 1;
       background: #334155;
@@ -408,7 +403,6 @@
       gap: 30px;
     }
 
-    /* A4 页面标准 */
     .flyer-page {
       width: 210mm;
       height: 297mm;
@@ -813,7 +807,7 @@
 <body>
 
 <div id="app">
-  <!-- ★ 极简密码网关拦截遮罩 (仅在未授权时渲染) -->
+  <!-- 密码网关拦截遮罩 (仅在未登录时渲染) -->
   <div v-if="!isAuthenticated" class="gateway-overlay">
     <div class="gateway-card">
       <div class="gateway-logo">ICO Internal Gateway</div>
@@ -834,8 +828,8 @@
     </div>
   </div>
 
-  <!-- 左侧控制面板 -->
-  <aside class="sidebar">
+  <!-- 左侧控制面板 (未登录时样式隐藏，保证 Vue 挂载平稳) -->
+  <aside class="sidebar" :style="{ display: isAuthenticated ? 'flex' : 'none' }">
     <div class="sidebar-header">
       <h2>ICO Flyer Studio</h2>
       <div class="top-actions">
@@ -844,234 +838,231 @@
       </div>
     </div>
 
-    <template v-if="isAuthenticated">
-      <div class="sidebar-content">
-        <!-- 模板切换 -->
-        <div class="panel-box">
-          <div class="panel-title">Template Presets</div>
-          <div class="preset-btns">
-            <button class="btn-preset" :class="{active: currentPreset === 'edward'}" @click="loadPreset('edward')">Edward</button>
-            <button class="btn-preset" :class="{active: currentPreset === 'max'}" @click="loadPreset('max')">Max Yan</button>
-          </div>
+    <div class="sidebar-content">
+      <!-- 模板切换 -->
+      <div class="panel-box">
+        <div class="panel-title">Template Presets</div>
+        <div class="preset-btns">
+          <button class="btn-preset" :class="{active: currentPreset === 'edward'}" @click="loadPreset('edward')">Edward</button>
+          <button class="btn-preset" :class="{active: currentPreset === 'max'}" @click="loadPreset('max')">Max Yan</button>
         </div>
-
-        <!-- ★ Lab / Service Center Branding 面板（支持动态修改 Lab 名称、Slogan 与 Lab Service 电话） -->
-        <div class="panel-box">
-          <div class="panel-title">Lab / Service Center Title</div>
-          <div class="form-group">
-            <label>Organization / Parent Group (Fixed)</label>
-            <input type="text" class="form-control" value="ICO Dental Group" disabled style="opacity: 0.65; cursor: not-allowed;">
-          </div>
-          <div class="form-group">
-            <label>Lab / Service Center Name</label>
-            <input type="text" class="form-control" v-model="branding.labName" placeholder="e.g. Crystal Smile Lab">
-          </div>
-          <div class="form-group">
-            <label>Brand Slogan / Tagline</label>
-            <input type="text" class="form-control" v-model="branding.slogan" placeholder="e.g. Your Trusted Partner in Digital Dental Solutions">
-          </div>
-          <div class="form-group">
-            <label>Lab Service Hotline / Phone</label>
-            <input type="text" class="form-control" v-model="branding.labPhone" placeholder="e.g. (866)-779-3210">
-          </div>
-        </div>
-
-        <!-- 高度容差滑块 -->
-        <div class="panel-box">
-          <div class="panel-title">
-            <span>Safety Margin Height</span>
-            <span style="color:#38bdf8">{{ subMaxHeight }}px</span>
-          </div>
-          <input type="range" min="900" max="1000" step="5" v-model.number="subMaxHeight" style="width:100%; cursor:pointer;">
-          <div style="font-size:11px; color:#94a3b8; margin-top:4px;">Drag left to break earlier, right to pack more rows.</div>
-        </div>
-
-        <!-- 名片信息 -->
-        <div class="panel-box">
-          <div class="panel-title">Rep Info & Banner</div>
-          <div class="form-group">
-            <label>Sales Rep Name</label>
-            <input type="text" class="form-control" v-model="rep.name">
-          </div>
-          <div class="form-group">
-            <label>Phone Number</label>
-            <input type="text" class="form-control" v-model="rep.phone">
-          </div>
-          <div class="form-group">
-            <label>Direct Email</label>
-            <input type="text" class="form-control" v-model="rep.email">
-          </div>
-          <div class="form-group">
-            <label>Promo Banner</label>
-            <input type="text" class="form-control" v-model="rep.promo">
-          </div>
-        </div>
-
-        <!-- Portal 编辑（不可拖拽，保持锁定） -->
-        <div class="panel-box">
-          <div class="panel-title">Scanner Portal Editor</div>
-          <div v-for="(pItem, pIdx) in portals" :key="pIdx" class="row-edit-grid" style="grid-template-columns: 100px 1fr 28px;">
-            <input type="text" class="form-control" style="font-size:11.5px;" v-model="pItem.portal">
-            <input type="text" class="form-control" style="font-size:11.5px;" v-model="pItem.endpoint">
-            <button class="btn-toggle-vis" :class="pItem.hidden ? 'is-hidden' : 'is-shown'" @click="pItem.hidden = !pItem.hidden" :title="pItem.hidden ? 'Click to show portal' : 'Click to hide portal'">
-              {{ pItem.hidden ? 'Hide' : 'Shown' }}
-            </button>
-          </div>
-          <button class="btn-add-row" @click="portals.push({ portal: 'New Portal', endpoint: 'email@example.com' })">+ Add Scanner Connection</button>
-        </div>
-
-        <!-- 产品目录编辑器 -->
-        <div class="panel-box">
-          <div class="panel-title">Product Catalog Editor</div>
-          
-          <div ref="tablesContainer">
-            <div v-for="(table, tIndex) in tables" :key="table.id || tIndex" class="table-editor-item" :data-id="table.id">
-              
-              <div class="table-header-bar">
-                <div style="display:flex; align-items:center; gap:6px; flex:1;">
-                  <span class="table-drag-handle" title="Drag to reorder table">⋮⋮</span>
-                  <input type="text" class="form-control" style="font-size:12px; font-weight:700; color:#38bdf8; padding:3px 6px; height:26px;" v-model="table.name">
-                </div>
-                <button v-if="tables.length > 1" class="btn-reset-top" style="padding:2px 6px; font-size:10px;" @click="deleteTable(tIndex)" title="Delete this entire table">Delete Table</button>
-              </div>
-
-              <div :ref="el => setRowContainer(el, tIndex)">
-                <div v-for="(item, iIndex) in table.items" :key="item.id" :id="'panel-item-' + item.id" :data-id="item.id" :class="{'row-hidden': item.hidden === true}">
-                  <div class="row-edit-grid">
-                    <span class="row-drag-handle" title="Drag to reorder row">⋮⋮</span>
-                    
-                    <input type="text" class="form-control" style="font-size:11.5px;" v-model="item.name" :class="{'highlight-focus': activeItemId === item.id}">
-                    
-                    <input type="text" class="form-control" style="font-size:11.5px;" v-model="item.price" v-if="!item.isSubheader" :class="{'highlight-focus': activeItemId === item.id}">
-                    <div style="text-align:center; color:#fbbf24; font-size:10px; font-weight:700;" v-else>SUB</div>
-                    
-                    <button class="btn-break" :class="{active: item.breakBefore}" @click="item.breakBefore = !item.breakBefore" title="Click to force page break before this item">
-                      ✂
-                    </button>
-                    
-                    <button class="btn-toggle-vis" :class="item.hidden ? 'is-hidden' : 'is-shown'" @click="item.hidden = !item.hidden" :title="item.hidden ? 'Click to show item' : 'Click to hide item'">
-                      {{ item.hidden ? 'Hide' : 'Shown' }}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div style="display:flex; gap:6px;">
-                <button class="btn-add-row" @click="addItem(table)">+ Add Row</button>
-                <button class="btn-add-row" style="color:#fbbf24;" @click="addSubheaderSmart(table)">+ Subheader</button>
-              </div>
-            </div>
-          </div>
-
-          <button class="btn-add-table" @click="addNewTable">+ Add New Table / Category</button>
-        </div>
-
       </div>
-    </aside>
 
-    <!-- 右侧实时预览区 -->
-    <main class="preview-stage">
-      <div v-for="(page, pIndex) in paginatedPages" :key="pIndex" class="flyer-page">
-        <div class="content-layer">
-          
-          <!-- 第 1 页 Header -->
-          <header v-if="pIndex === 0" class="header-section">
-            <div class="brand-col">
-              <div>
-                <h1>ICO Dental Group</h1>
-                <h2>{{ branding.labName }}</h2>
-                <p class="slogan">{{ branding.slogan }}</p>
+      <!-- Lab 品牌设置 -->
+      <div class="panel-box">
+        <div class="panel-title">Lab / Service Center Title</div>
+        <div class="form-group">
+          <label>Organization / Parent Group (Fixed)</label>
+          <input type="text" class="form-control" value="ICO Dental Group" disabled style="opacity: 0.65; cursor: not-allowed;">
+        </div>
+        <div class="form-group">
+          <label>Lab / Service Center Name</label>
+          <input type="text" class="form-control" v-model="branding.labName" placeholder="e.g. Crystal Smile Lab">
+        </div>
+        <div class="form-group">
+          <label>Brand Slogan / Tagline</label>
+          <input type="text" class="form-control" v-model="branding.slogan" placeholder="e.g. Your Trusted Partner in Digital Dental Solutions">
+        </div>
+        <div class="form-group">
+          <label>Lab Service Hotline / Phone</label>
+          <input type="text" class="form-control" v-model="branding.labPhone" placeholder="e.g. (866)-779-3210">
+        </div>
+      </div>
+
+      <!-- 高度容差滑块 -->
+      <div class="panel-box">
+        <div class="panel-title">
+          <span>Safety Margin Height</span>
+          <span style="color:#38bdf8">{{ subMaxHeight }}px</span>
+        </div>
+        <input type="range" min="900" max="1000" step="5" v-model.number="subMaxHeight" style="width:100%; cursor:pointer;">
+        <div style="font-size:11px; color:#94a3b8; margin-top:4px;">Drag left to break earlier, right to pack more rows.</div>
+      </div>
+
+      <!-- 名片信息 -->
+      <div class="panel-box">
+        <div class="panel-title">Rep Info & Banner</div>
+        <div class="form-group">
+          <label>Sales Rep Name</label>
+          <input type="text" class="form-control" v-model="rep.name">
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="text" class="form-control" v-model="rep.phone">
+        </div>
+        <div class="form-group">
+          <label>Direct Email</label>
+          <input type="text" class="form-control" v-model="rep.email">
+        </div>
+        <div class="form-group">
+          <label>Promo Banner</label>
+          <input type="text" class="form-control" v-model="rep.promo">
+        </div>
+      </div>
+
+      <!-- Portal 编辑 -->
+      <div class="panel-box">
+        <div class="panel-title">Scanner Portal Editor</div>
+        <div v-for="(pItem, pIdx) in portals" :key="pIdx" class="row-edit-grid" style="grid-template-columns: 100px 1fr 28px;">
+          <input type="text" class="form-control" style="font-size:11.5px;" v-model="pItem.portal">
+          <input type="text" class="form-control" style="font-size:11.5px;" v-model="pItem.endpoint">
+          <button class="btn-toggle-vis" :class="pItem.hidden ? 'is-hidden' : 'is-shown'" @click="pItem.hidden = !pItem.hidden" :title="pItem.hidden ? 'Click to show portal' : 'Click to hide portal'">
+            {{ pItem.hidden ? 'Hide' : 'Shown' }}
+          </button>
+        </div>
+        <button class="btn-add-row" @click="portals.push({ portal: 'New Portal', endpoint: 'email@example.com' })">+ Add Scanner Connection</button>
+      </div>
+
+      <!-- 产品目录编辑器 -->
+      <div class="panel-box">
+        <div class="panel-title">Product Catalog Editor</div>
+        
+        <div ref="tablesContainer">
+          <div v-for="(table, tIndex) in tables" :key="table.id || tIndex" class="table-editor-item" :data-id="table.id">
+            
+            <div class="table-header-bar">
+              <div style="display:flex; align-items:center; gap:6px; flex:1;">
+                <span class="table-drag-handle" title="Drag to reorder table">⋮⋮</span>
+                <input type="text" class="form-control" style="font-size:12px; font-weight:700; color:#38bdf8; padding:3px 6px; height:26px;" v-model="table.name">
               </div>
-              
-              <div>
-                <div class="contact-card-grid">
-                  <div class="contact-item">
-                    <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-                    <span>{{ rep.name }}: <a :href="'tel:' + rep.phone"><strong>{{ rep.phone }}</strong></a></span>
-                  </div>
-                  <!-- ★ 动态 Lab Service 电话 -->
-                  <div class="contact-item">
-                    <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-                    <span>Lab Service: <a :href="'tel:' + cleanPhone(branding.labPhone)"><strong>{{ branding.labPhone }}</strong></a></span>
-                  </div>
-                  <div class="contact-item">
-                    <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-                    <span><a :href="'mailto:' + rep.email"><strong>{{ rep.email }}</strong></a></span>
-                  </div>
+              <button v-if="tables.length > 1" class="btn-reset-top" style="padding:2px 6px; font-size:10px;" @click="deleteTable(tIndex)" title="Delete this entire table">Delete Table</button>
+            </div>
+
+            <div :ref="el => setRowContainer(el, tIndex)">
+              <div v-for="(item, iIndex) in table.items" :key="item.id" :id="'panel-item-' + item.id" :data-id="item.id" :class="{'row-hidden': item.hidden === true}">
+                <div class="row-edit-grid">
+                  <span class="row-drag-handle" title="Drag to reorder row">⋮⋮</span>
+                  
+                  <input type="text" class="form-control" style="font-size:11.5px;" v-model="item.name" :class="{'highlight-focus': activeItemId === item.id}">
+                  
+                  <input type="text" class="form-control" style="font-size:11.5px;" v-model="item.price" v-if="!item.isSubheader" :class="{'highlight-focus': activeItemId === item.id}">
+                  <div style="text-align:center; color:#fbbf24; font-size:10px; font-weight:700;" v-else>SUB</div>
+                  
+                  <button class="btn-break" :class="{active: item.breakBefore}" @click="item.breakBefore = !item.breakBefore" title="Click to force page break before this item">
+                    ✂
+                  </button>
+                  
+                  <button class="btn-toggle-vis" :class="item.hidden ? 'is-hidden' : 'is-shown'" @click="item.hidden = !item.hidden" :title="item.hidden ? 'Click to show item' : 'Click to hide item'">
+                    {{ item.hidden ? 'Hide' : 'Shown' }}
+                  </button>
                 </div>
-                <div v-if="rep.promo" class="promo-banner">★ {{ rep.promo }}</div>
               </div>
             </div>
 
-            <div class="logo-col">
-              <img src="squirrel.png" alt="ICO Mascot Logo" class="squirrel-logo">
-              <div class="year-banner">2026</div>
-              <div class="price-list-badge">Detailed Price List</div>
+            <div style="display:flex; gap:6px;">
+              <button class="btn-add-row" @click="addItem(table)">+ Add Row</button>
+              <button class="btn-add-row" style="color:#fbbf24;" @click="addSubheaderSmart(table)">+ Subheader</button>
             </div>
-          </header>
+          </div>
+        </div>
 
-          <!-- 第 2/3/4 页 Subheader (★ Lab 名称与电话号码全自动同步) -->
-          <header v-else class="header-subpage">
-            <div class="sub-brand">ICO Dental Group • {{ branding.labName || 'Price List' }}</div>
-            <div class="sub-contact">
-              Direct: <a :href="'tel:' + rep.phone">{{ rep.phone }}</a> | Lab: <a :href="'tel:' + cleanPhone(branding.labPhone)">{{ branding.labPhone }}</a>
+        <button class="btn-add-table" @click="addNewTable">+ Add New Table / Category</button>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- 右侧实时预览区 (未登录时样式隐藏) -->
+  <main class="preview-stage" :style="{ display: isAuthenticated ? 'flex' : 'none' }">
+    <div v-for="(page, pIndex) in paginatedPages" :key="pIndex" class="flyer-page">
+      <div class="content-layer">
+        
+        <!-- 第 1 页 Header -->
+        <header v-if="pIndex === 0" class="header-section">
+          <div class="brand-col">
+            <div>
+              <h1>ICO Dental Group</h1>
+              <h2>{{ branding.labName }}</h2>
+              <p class="slogan">{{ branding.slogan }}</p>
             </div>
-          </header>
-
-          <!-- 第 1 页 Portal 表格 -->
-          <section v-if="pIndex === 0" class="table-container portal-container">
-            <div class="portal-header">
-              <span>LAB SCANNER PORTAL</span>
-              <span style="font-size: 10px; font-weight: normal; opacity: 0.9;">DIGITAL CONNECTIONS</span>
+            
+            <div>
+              <div class="contact-card-grid">
+                <div class="contact-item">
+                  <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                  <span>{{ rep.name }}: <a :href="'tel:' + rep.phone"><strong>{{ rep.phone }}</strong></a></span>
+                </div>
+                <div class="contact-item">
+                  <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                  <span>Lab Service: <a :href="'tel:' + cleanPhone(branding.labPhone)"><strong>{{ branding.labPhone }}</strong></a></span>
+                </div>
+                <div class="contact-item">
+                  <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                  <span><a :href="'mailto:' + rep.email"><strong>{{ rep.email }}</strong></a></span>
+                </div>
+              </div>
+              <div v-if="rep.promo" class="promo-banner">★ {{ rep.promo }}</div>
             </div>
-            <table class="custom-table portal-table">
-              <tbody>
-                <template v-for="(pItem, pIdx) in portals" :key="pIdx">
-                  <tr v-if="!pItem.hidden">
-                    <td class="col-portal">{{ pItem.portal }}</td>
-                    <td class="col-endpoint" v-html="formatPortalEndpoint(pItem.endpoint)"></td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
-          </section>
+          </div>
 
-          <!-- 动态表格片段 -->
-          <section v-for="(frag, fIndex) in page.fragments" :key="fIndex" class="table-container">
-            <div v-if="frag.isFirstPart" class="product-header">
-              <span>{{ frag.tableName }}</span>
-              <span>CURRENT PRICE</span>
-            </div>
+          <div class="logo-col">
+            <img src="squirrel.png" alt="ICO Mascot Logo" class="squirrel-logo">
+            <div class="year-banner">2026</div>
+            <div class="price-list-badge">Detailed Price List</div>
+          </div>
+        </header>
 
-            <table class="custom-table product-table">
-              <tbody>
-                <tr v-for="(row, rIndex) in frag.items" :key="row.id || rIndex" @click="locateItemInPanel(row.id)" title="Click to edit this item in left panel">
-                  <td v-if="row.isSubheader" colspan="2" class="section-subheader">{{ row.name }}</td>
-                  <template v-else>
-                    <td class="col-name" :class="{indent: row.isIndent}">{{ row.name }}</td>
-                    <td class="col-price">
-                      {{ row.price }}
-                      <span v-if="row.note" class="price-note">{{ row.note }}</span>
-                    </td>
-                  </template>
+        <!-- 第 2/3/4 页 Subheader -->
+        <header v-else class="header-subpage">
+          <div class="sub-brand">ICO Dental Group • {{ branding.labName || 'Price List' }}</div>
+          <div class="sub-contact">
+            Direct: <a :href="'tel:' + rep.phone">{{ rep.phone }}</a> | Lab: <a :href="'tel:' + cleanPhone(branding.labPhone)">{{ branding.labPhone }}</a>
+          </div>
+        </header>
+
+        <!-- 第 1 页 Portal 表格 -->
+        <section v-if="pIndex === 0" class="table-container portal-container">
+          <div class="portal-header">
+            <span>LAB SCANNER PORTAL</span>
+            <span style="font-size: 10px; font-weight: normal; opacity: 0.9;">DIGITAL CONNECTIONS</span>
+          </div>
+          <table class="custom-table portal-table">
+            <tbody>
+              <template v-for="(pItem, pIdx) in portals" :key="pIdx">
+                <tr v-if="!pItem.hidden">
+                  <td class="col-portal">{{ pItem.portal }}</td>
+                  <td class="col-endpoint" v-html="formatPortalEndpoint(pItem.endpoint)"></td>
                 </tr>
-              </tbody>
-            </table>
-          </section>
+              </template>
+            </tbody>
+          </table>
+        </section>
 
-        </div>
-
-        <footer class="footer-area">
-          <div class="art-footer-group">
-            <div class="art-footer-line">High Quality</div>
-            <div class="art-footer-line">Precision</div>
-            <div class="art-footer-line">On Time</div>
-            <div class="art-footer-page">{{ pIndex + 1 }} / {{ paginatedPages.length }}</div>
+        <!-- 动态表格片段 -->
+        <section v-for="(frag, fIndex) in page.fragments" :key="fIndex" class="table-container">
+          <div v-if="frag.isFirstPart" class="product-header">
+            <span>{{ frag.tableName }}</span>
+            <span>CURRENT PRICE</span>
           </div>
-        </footer>
+
+          <table class="custom-table product-table">
+            <tbody>
+              <tr v-for="(row, rIndex) in frag.items" :key="row.id || rIndex" @click="locateItemInPanel(row.id)" title="Click to edit this item in left panel">
+                <td v-if="row.isSubheader" colspan="2" class="section-subheader">{{ row.name }}</td>
+                <template v-else>
+                  <td class="col-name" :class="{indent: row.isIndent}">{{ row.name }}</td>
+                  <td class="col-price">
+                    {{ row.price }}
+                    <span v-if="row.note" class="price-note">{{ row.note }}</span>
+                  </td>
+                </template>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
       </div>
-    </main>
-  </template>
+
+      <footer class="footer-area">
+        <div class="art-footer-group">
+          <div class="art-footer-line">High Quality</div>
+          <div class="art-footer-line">Precision</div>
+          <div class="art-footer-line">On Time</div>
+          <div class="art-footer-page">{{ pIndex + 1 }} / {{ paginatedPages.length }}</div>
+        </div>
+      </footer>
+    </div>
+  </main>
 </div>
 
 <script>
@@ -1080,53 +1071,54 @@ const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
 createApp({
   setup() {
     // ==========================================
-    // 网关安全逻辑
+    // 工业级密文（彻底清除所有明文数据）
+    // ★ 请把终端步骤 1 打印出来的长字符串替换到双引号内
     // ==========================================
-    // 纯 JavaScript 版 SHA-256，无视 file:// 协议和环境限制，100% 兼容
+    const ENCRYPTED_DATA = "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";
 
     const isAuthenticated = ref(sessionStorage.getItem('ico_auth_passed') === 'true');
     const tokenInput = ref('');
     const authError = ref('');
 
-    const ENCRYPTED_DATA = "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";
-
-    const verifyToken = () => {
-      authError.value = '';
-      const inputPass = tokenInput.value.trim();
-      if (!inputPass) {
-        authError.value = 'Please enter passcode.';
-        return;
-      }
-
+    // 全局缓存解密出来的完整数据包 { edward: [...], max: [...] }
+    let decryptedStore = null;
+    const cachedUnlock = sessionStorage.getItem('ico_unlocked_data');
+    if (cachedUnlock) {
       try {
-        // 直接使用用户输入的密码解密
-        const bytes = CryptoJS.AES.decrypt(ENCRYPTED_DATA, inputPass);
-        const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
-        
-        if (!decryptedText) {
-          throw new Error("Invalid password");
-        }
-        
-        // 解密成功：载入真实数据
-        decryptedStore = JSON.parse(decryptedText);
-        // 优先读取用户之前编辑过的本地修改，若无则使用解密出来的默认表
-        const saved = JSON.parse(localStorage.getItem('ico_tables'));
-        tables.value = ensureIds(saved && saved.length > 0 ? saved : (decryptedStore[currentPreset.value] || decryptedStore.edward));
-        isAuthenticated.value = true;
-        sessionStorage.setItem('ico_auth_passed', 'true');
-        sessionStorage.setItem('ico_unlocked_data', decryptedText);
-      } catch (e) {
-        authError.value = "Invalid passcode. Access denied.";
-        tokenInput.value = '';
-      }
-    };
+        decryptedStore = JSON.parse(cachedUnlock);
+      } catch (e) {}
+    }
 
-    // 默认 Lab、Slogan 与专线电话
+    // 默认 Lab 与 Slogan
     const defaultBranding = {
       labName: "Crystal Smile Lab",
       slogan: "Your Trusted Partner in Digital Dental Solutions",
       labPhone: "(866)-779-3210"
     };
+
+    const defaultEdwardRep = {
+      name: "Edward Shan",
+      phone: "774-277-9053",
+      email: "edwardshan.crystalsmile@gmail.com",
+      promo: ""
+    };
+
+    const maxRep = {
+      name: "Max Yan",
+      phone: "(508)-981-3740",
+      email: "max.yan@icodentalgroup.com",
+      promo: "Free pickup & delivery / 1st crown case free"
+    };
+
+    const defaultPortals = [
+      { portal: "iTero", endpoint: "Our Lab ID: 557642 or ma.icodental.lab@gmail.com" },
+      { portal: "Medit", endpoint: "ma.icodental.lab@gmail.com" },
+      { portal: "3 shape (Trios)", endpoint: "service.crystalsmile@gmail.com" },
+      { portal: "Shining 3D", endpoint: "ma.icodental.lab@gmail.com" },
+      { portal: "CS Connect", endpoint: "jessica.xu@icodentalgroup.com" },
+      { portal: "Dentsply Sirona (DS Core)", endpoint: "ma.icodental.lab@gmail.com" },
+      { portal: "Dexis Connect", endpoint: "ma.icodental.lab@gmail.com" }
+    ];
 
     let idSeed = 2000;
     const ensureIds = (tableList) => {
@@ -1144,17 +1136,18 @@ createApp({
     };
 
     const currentPreset = ref('edward');
-    
-    // 从 localStorage 读取或使用默认值，并确保 labPhone 字段存在
     const savedBranding = JSON.parse(localStorage.getItem('ico_branding'));
     const branding = ref(Object.assign({}, defaultBranding, savedBranding));
 
     const rep = ref(JSON.parse(localStorage.getItem('ico_rep')) || defaultEdwardRep);
+    
+    // ★ 关键：未通过密码前，数据源绝不读取任何数据，强制为 []，确保 DOM 树里搜不出任何价格
     let initialTables = [];
-    if (isAuthenticated.value) {
-      initialTables = JSON.parse(localStorage.getItem('ico_tables')) || (decryptedStore ? decryptedStore.edward : []);
+    if (isAuthenticated.value && decryptedStore) {
+      initialTables = JSON.parse(localStorage.getItem('ico_tables')) || (decryptedStore[currentPreset.value] || decryptedStore.edward);
     }
-    const tables = ref(ensureIds(rawSavedTables));
+    const tables = ref(ensureIds(initialTables));
+
     const portals = ref(JSON.parse(localStorage.getItem('ico_portals')) || defaultPortals);
     const subMaxHeight = ref(Number(localStorage.getItem('ico_submax')) || 960);
     const activeItemId = ref(null);
@@ -1165,8 +1158,8 @@ createApp({
       if (el) rowContainers.value[idx] = el;
     };
 
-    // 拖拽初始化
     const initSortables = () => {
+      if (!isAuthenticated.value) return; // 未登录时不初始化拖拽，防止报错
       if (tablesContainer.value) {
         new Sortable(tablesContainer.value, {
           handle: '.table-drag-handle',
@@ -1206,11 +1199,46 @@ createApp({
       });
     }, { deep: true });
 
-    // 数据持久化（自动存储 branding 包含电话）
+    // ★ 核心解锁逻辑
+    const verifyToken = () => {
+      authError.value = '';
+      const inputPass = tokenInput.value.trim();
+      if (!inputPass) {
+        authError.value = 'Please enter passcode.';
+        return;
+      }
+
+      try {
+        const bytes = CryptoJS.AES.decrypt(ENCRYPTED_DATA, inputPass);
+        const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+        
+        if (!decryptedText) {
+          throw new Error("Invalid password");
+        }
+
+        // 成功解密
+        decryptedStore = JSON.parse(decryptedText);
+        tables.value = ensureIds(decryptedStore[currentPreset.value] || decryptedStore.edward);
+        isAuthenticated.value = true;
+        sessionStorage.setItem('ico_auth_passed', 'true');
+        sessionStorage.setItem('ico_unlocked_data', decryptedText);
+
+        // 登录成功后，等待 DOM 刷新并重新挂载拖拽手柄
+        nextTick(() => {
+          initSortables();
+        });
+      } catch (e) {
+        authError.value = "Invalid passcode. Access denied.";
+        tokenInput.value = '';
+      }
+    };
+
     watch([branding, rep, tables, portals, subMaxHeight], () => {
       localStorage.setItem('ico_branding', JSON.stringify(branding.value));
       localStorage.setItem('ico_rep', JSON.stringify(rep.value));
-      localStorage.setItem('ico_tables', JSON.stringify(tables.value));
+      if (isAuthenticated.value && tables.value.length > 0) {
+        localStorage.setItem('ico_tables', JSON.stringify(tables.value));
+      }
       localStorage.setItem('ico_portals', JSON.stringify(portals.value));
       localStorage.setItem('ico_submax', subMaxHeight.value);
     }, { deep: true });
@@ -1244,8 +1272,9 @@ createApp({
     const confirmReset = () => {
       if (confirm("Reset all settings and tables to default? All local customizations will be cleared.")) {
         localStorage.clear();
+        sessionStorage.clear();
         subMaxHeight.value = 960;
-        loadPreset('edward');
+        location.reload();
       }
     };
 
@@ -1254,7 +1283,9 @@ createApp({
       if (key === 'edward') {
         branding.value = JSON.parse(JSON.stringify(defaultBranding));
         rep.value = JSON.parse(JSON.stringify(defaultEdwardRep));
-        tables.value = ensureIds(JSON.parse(JSON.stringify(defaultEdwardTables)));
+        if (decryptedStore) {
+          tables.value = ensureIds(JSON.parse(JSON.stringify(decryptedStore.edward)));
+        }
         portals.value = JSON.parse(JSON.stringify(defaultPortals));
       } else {
         branding.value = {
@@ -1263,7 +1294,9 @@ createApp({
           labPhone: "(866)-779-3210"
         };
         rep.value = JSON.parse(JSON.stringify(maxRep));
-        tables.value = ensureIds(JSON.parse(JSON.stringify(maxTables)));
+        if (decryptedStore) {
+          tables.value = ensureIds(JSON.parse(JSON.stringify(decryptedStore.max)));
+        }
         portals.value = JSON.parse(JSON.stringify(defaultPortals));
       }
     };
@@ -1286,7 +1319,6 @@ createApp({
       }, 2500);
     };
 
-    // 格式化 tel: 链接，过滤括号破折号空格
     const cleanPhone = (phone) => {
       return phone ? phone.replace(/[^0-9+]/g, '') : '';
     };
@@ -1298,7 +1330,6 @@ createApp({
       return res;
     };
 
-    // 虚拟分页流水线
     const paginatedPages = computed(() => {
       const pages = [];
       let currentPage = { fragments: [] };
