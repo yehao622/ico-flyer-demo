@@ -535,7 +535,10 @@
     }
 
     .squirrel-logo {
-      width: 125px;
+      max-width: 145px;
+      max-height: 138px;
+      /*width: 125px;*/
+      width: auto;
       height: auto;
       object-fit: contain;
       filter: drop-shadow(0 6px 12px rgba(0,0,0,0.16));
@@ -853,7 +856,7 @@
         <div class="panel-title">Lab / Service Center Title</div>
         <div class="form-group">
           <label>Organization / Parent Group (Fixed)</label>
-          <input type="text" class="form-control" value="ICO Dental Group" disabled style="opacity: 0.65; cursor: not-allowed;">
+          <input type="text" class="form-control" v-model="branding.groupName" placeholder="e.g. ICO Dental Group">
         </div>
         <div class="form-group">
           <label>Lab / Service Center Name</label>
@@ -866,6 +869,19 @@
         <div class="form-group">
           <label>Lab Service Hotline / Phone</label>
           <input type="text" class="form-control" v-model="branding.labPhone" placeholder="e.g. (866)-779-3210">
+        </div>
+
+        <div class="form-group" style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed #3b4d66;">
+          <label>Custom Mascot / Company Logo (Auto-fitted)</label>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <label class="btn-preset" style="text-align: center; margin: 0; cursor: pointer; background: #0284c7; border-color: #38bdf8; color: #fff;">
+              Upload Image
+              <input type="file" accept="image/*" @change="handleLogoUpload" style="display: none;">
+            </label>
+            <button v-if="branding.customLogo" type="button" class="btn-reset-top" @click="branding.customLogo = ''" style="padding: 6px 10px;">
+              Reset Squirrel
+            </button>
+          </div>
         </div>
       </div>
 
@@ -971,7 +987,7 @@
         <header v-if="pIndex === 0" class="header-section">
           <div class="brand-col">
             <div>
-              <h1>ICO Dental Group</h1>
+              <h1>{{ branding.groupName }}</h1>
               <h2>{{ branding.labName }}</h2>
               <p class="slogan">{{ branding.slogan }}</p>
             </div>
@@ -996,7 +1012,7 @@
           </div>
 
           <div class="logo-col">
-            <img src="squirrel.png" alt="ICO Mascot Logo" class="squirrel-logo">
+            <img :src="branding.customLogo || 'squirrel.png'" alt="Company Logo" class="squirrel-logo">
             <div class="year-banner">2026</div>
             <div class="price-list-badge">Detailed Price List</div>
           </div>
@@ -1004,7 +1020,7 @@
 
         <!-- 第 2/3/4 页 Subheader -->
         <header v-else class="header-subpage">
-          <div class="sub-brand">ICO Dental Group • {{ branding.labName || 'Price List' }}</div>
+          <div class="sub-brand">{{ branding.groupName }} • {{ branding.labName || 'Price List' }}</div>
           <div class="sub-contact">
             Direct: <a :href="'tel:' + rep.phone">{{ rep.phone }}</a> | Lab: <a :href="'tel:' + cleanPhone(branding.labPhone)">{{ branding.labPhone }}</a>
           </div>
@@ -1091,9 +1107,11 @@ createApp({
 
     // 默认 Lab 与 Slogan
     const defaultBranding = {
+      groupName: "ICO Dental Group",
       labName: "Crystal Smile Lab",
       slogan: "Your Trusted Partner in Digital Dental Solutions",
-      labPhone: "(866)-779-3210"
+      labPhone: "(866)-779-3210",
+      customLogo: ""
     };
 
     const defaultEdwardRep = {
@@ -1119,6 +1137,42 @@ createApp({
       { portal: "Dentsply Sirona (DS Core)", endpoint: "ma.icodental.lab@gmail.com" },
       { portal: "Dexis Connect", endpoint: "ma.icodental.lab@gmail.com" }
     ];
+
+    // 2. 自动缩放高清图片，防止撑破 localStorage 或界面越界
+    const handleLogoUpload = (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_SIZE = 400; // 限制最大边长为 400px，打印依然清晰且体积极小
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height && width > MAX_SIZE) {
+            height = Math.round((height * MAX_SIZE) / width);
+            width = MAX_SIZE;
+          } else if (height > MAX_SIZE) {
+            width = Math.round((width * MAX_SIZE) / height);
+            height = MAX_SIZE;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // 导出为透明背景 PNG 格式并存入响应式状态
+          branding.value.customLogo = canvas.toDataURL('image/png');
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+      event.target.value = ''; // 清空 input 允许重复选择同一文件
+    };
 
     let idSeed = 2000;
     const ensureIds = (tableList) => {
@@ -1281,7 +1335,10 @@ createApp({
     const loadPreset = (key) => {
       currentPreset.value = key;
       if (key === 'edward') {
-        branding.value = JSON.parse(JSON.stringify(defaultBranding));
+        branding.value.labName = defaultBranding.labName;
+        branding.value.slogan = defaultBranding.slogan;
+        branding.value.labPhone = defaultBranding.labPhone;
+        
         rep.value = JSON.parse(JSON.stringify(defaultEdwardRep));
         if (decryptedStore) {
           tables.value = ensureIds(JSON.parse(JSON.stringify(decryptedStore.edward)));
@@ -1396,7 +1453,7 @@ createApp({
     const printPDF = () => { window.print(); };
 
     return {
-      isAuthenticated, tokenInput, authError, verifyToken, branding, rep, portals, tables, currentPreset, subMaxHeight, activeItemId,
+      isAuthenticated, tokenInput, authError, verifyToken, branding, handleLogoUpload, rep, portals, tables, currentPreset, subMaxHeight, activeItemId,
       tablesContainer, setRowContainer,
       loadPreset, confirmReset, addItem, addSubheaderSmart, addNewTable, deleteTable,
       cleanPhone, formatPortalEndpoint, paginatedPages, printPDF, locateItemInPanel
