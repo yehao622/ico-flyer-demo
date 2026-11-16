@@ -1326,7 +1326,7 @@ createApp({
     const confirmReset = () => {
       if (confirm("Reset all settings and tables to default? All local customizations will be cleared.")) {
         localStorage.clear();
-        sessionStorage.clear();
+        // sessionStorage.clear();
         subMaxHeight.value = 960;
         location.reload();
       }
@@ -1338,18 +1338,17 @@ createApp({
         branding.value.labName = defaultBranding.labName;
         branding.value.slogan = defaultBranding.slogan;
         branding.value.labPhone = defaultBranding.labPhone;
-        
+
         rep.value = JSON.parse(JSON.stringify(defaultEdwardRep));
         if (decryptedStore) {
           tables.value = ensureIds(JSON.parse(JSON.stringify(decryptedStore.edward)));
         }
         portals.value = JSON.parse(JSON.stringify(defaultPortals));
       } else {
-        branding.value = {
-          labName: "Ruyi Dental Lab",
-          slogan: "Precision Prosthetics & Comprehensive Digital Solutions",
-          labPhone: "(866)-779-3210"
-        };
+        branding.value.labName = "Ruyi Dental Lab";
+        branding.value.slogan = "Precision Prosthetics & Comprehensive Digital Solutions";
+        branding.value.labPhone = "(866)-779-3210";
+        
         rep.value = JSON.parse(JSON.stringify(maxRep));
         if (decryptedStore) {
           tables.value = ensureIds(JSON.parse(JSON.stringify(decryptedStore.max)));
